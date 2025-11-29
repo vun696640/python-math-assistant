@@ -1,32 +1,33 @@
 import os
-from typing import List, Dict, Optional
+import json
+from typing import List, Dict
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from pypdf import PdfReader
 from openai import OpenAI
-import json
-
 
 # ========================
 #  CONFIG
 # ========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CHUAN_DAU_RA_FILE = os.path.join(BASE_DIR, "chuan_dau_ra")
+CHUAN_DAU_RA_FILE = os.path.join(BASE_DIR, "chuan_dau_ra.md")
+INDEX_FILE = os.path.join(BASE_DIR, "index.html")
 
 app = FastAPI(title="Math AI Assistant")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # nếu sau này host riêng frontend thì sửa origin lại
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 client = OpenAI()
-
 
 # ========================
 #  DATA MODELS
@@ -54,18 +55,18 @@ class TestCase(BaseModel):
 class TestGenerationResponse(BaseModel):
     tests: List[TestCase]
 
-
 # ========================
 #  LOAD CHUẨN ĐẦU RA (T1–T15)
 # ========================
 def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     if not os.path.exists(path):
+        print(f"[WARN] Không tìm thấy file chuẩn đầu ra: {path}")
         return {}
 
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    standards = {}
+    standards: Dict[str, Standard] = {}
     code = None
     name = ""
     buf = []
@@ -73,27 +74,29 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     for line in lines:
         s = line.strip()
         if s.startswith("## "):
-            # save previous
+            # Lưu chuẩn trước đó
             if code:
                 standards[code] = Standard(
                     code=code,
                     name=name,
                     description="\n".join(buf).strip()
                 )
-            # parse new
+            # Bắt đầu chuẩn mới
             after = s[3:].strip()
             if "–" in after:
-                code = after.split("–")[0].strip()
-                name = after.split("–")[1].strip()
+                parts = after.split("–", 1)
+                code = parts[0].strip()
+                name = parts[1].strip()
             else:
                 parts = after.split()
-                code = parts[0]
-                name = parts[0]
+                code = parts[0].strip()
+                name = parts[0].strip()
             buf = []
         else:
             if code:
                 buf.append(line.rstrip())
 
+    # Chuẩn cuối cùng
     if code:
         standards[code] = Standard(
             code=code,
@@ -101,47 +104,47 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
             description="\n".join(buf).strip()
         )
 
+    print(f"[INFO] Loaded {len(standards)} standards: {list(standards.keys())}")
     return standards
 
-
 STANDARDS = parse_chuan_dau_ra_md(CHUAN_DAU_RA_FILE)
-
 
 # ========================
 #  SIMPLE KEYWORD DETECTOR
 # ========================
 def detect_standards_from_text(text: str) -> List[str]:
     t = text.lower()
-    found = []
+    found: List[str] = []
 
     KEYWORDS = {
         "T1": ["ucln", "bcnn", "lũy thừa", "số mũ", "luy thua"],
-        "T2": ["phần trăm", "%", "tỉ lệ", "giam gia"],
+        "T2": ["phần trăm", "%", "tỉ lệ", "giam gia", "tỷ lệ"],
         "T3": ["góc", "tam giác", "chứng minh", "tam giac"],
-        "T4": ["căn bậc hai", "sqrt"],
-        "T5": ["phương trình bậc nhất"],
-        "T6": ["hệ phương trình"],
+        "T4": ["căn bậc hai", "sqrt", "căn bậc 2"],
+        "T5": ["phương trình bậc nhất", "pt bậc nhất"],
+        "T6": ["hệ phương trình", "hpt"],
         "T7": ["bất phương trình"],
         "T8": ["hàm số", "đồ thị", "graph"],
-        "T9": ["tam giác vuông", "pytago"],
+        "T9": ["tam giác vuông", "pytago", "pythagore"],
         "T10": ["đường tròn", "cung", "góc nội tiếp"],
         "T11": ["tiếp tuyến"],
         "T12": ["hình trụ", "hình nón", "hình cầu"],
-        "T13": ["tần số", "bảng", "thống kê"],
+        "T13": ["tần số", "bảng tần số", "thống kê"],
         "T14": ["xác suất"],
-        "T15": ["bài toán thực tế", "thực tế"]
+        "T15": ["bài toán thực tế", "thực tế", "bối cảnh thực tế"],
     }
 
     for code, keywords in KEYWORDS.items():
         if any(k in t for k in keywords):
             found.append(code)
 
+    # Nếu không tìm được gì mà vẫn muốn phân loại, có thể default T1;
+    # hoặc để rỗng tùy bạn. Ở đây mình giữ nguyên default T1 như ban đầu:
     if not found:
         found.append("T1")
 
     # Chỉ giữ chuẩn có thật trong file chuẩn đầu ra
     return [x for x in found if x in STANDARDS]
-
 
 # ========================
 #  API: HEALTH
@@ -150,9 +153,8 @@ def detect_standards_from_text(text: str) -> List[str]:
 def api_health():
     return {
         "status": "ok",
-        "standards_loaded": list(STANDARDS.keys())
+        "standards_loaded": list(STANDARDS.keys()),
     }
-
 
 # ========================
 #  API: CHAT
@@ -180,13 +182,13 @@ async def chat_message(req: ChatRequest):
     try:
         completion = client.chat.completions.create(
             model="gpt-4.1-mini",
-            messages=messages
+            messages=messages,
         )
         reply = completion.choices[0].message.content.strip()
     except Exception as e:
         raise HTTPException(500, f"OpenAI error: {e}")
 
-    # detect standards
+    # detect standards từ message user cuối cùng
     last_user_msg = ""
     for m in reversed(req.messages):
         if m.role == "user":
@@ -196,7 +198,6 @@ async def chat_message(req: ChatRequest):
     detected = detect_standards_from_text(last_user_msg)
 
     return ChatResponse(reply=reply, standards=detected)
-
 
 # ========================
 #  API: TEST GENERATOR (AI TỰ SINH TEST)
@@ -226,27 +227,30 @@ async def generate_tests():
       }}
     """
 
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise HTTPException(500, "Thiếu OPENAI_API_KEY")
+
     try:
         completion = client.chat.completions.create(
             model="gpt-4.1",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
         )
         raw = completion.choices[0].message.content
         data = json.loads(raw)
+        # FastAPI sẽ tự validate theo TestGenerationResponse
         return data
     except Exception as e:
         raise HTTPException(500, f"OpenAI error in test generation: {e}")
-
 
 # ========================
 #  API: FILE PARSE
 # ========================
 @app.post("/file/parse")
 async def parse_file(file: UploadFile = File(...)):
-    name = file.filename.lower()
+    name = file.filename
 
     try:
-        if name.endswith(".pdf"):
+        if name.lower().endswith(".pdf"):
             reader = PdfReader(file.file)
             pages = [page.extract_text() or "" for page in reader.pages]
             content = "\n\n".join(pages)
@@ -258,20 +262,25 @@ async def parse_file(file: UploadFile = File(...)):
             content = content[:8000]
 
         return {"filename": name, "content": content}
-
     except Exception as e:
         raise HTTPException(400, f"Không đọc được file: {e}")
 
-
 # ========================
-#  ROOT (CHO RENDER HEALTH CHECK)
+#  ROOT: SERVE UI (index.html)
 # ========================
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return {"message": "Math AI Assistant is running!"}
-
+    if not os.path.exists(INDEX_FILE):
+        # fallback: nếu chưa có UI, trả JSON cho Render biết server vẫn sống
+        return HTMLResponse(
+            '<h1>Math AI Assistant</h1><p>Không tìm thấy index.html</p>',
+            status_code=500,
+        )
+    with open(INDEX_FILE, "r", encoding="utf-8") as f:
+        return f.read()
 
 # ========================
-#  STATIC (UI)
+#  OPTIONAL: STATIC (nếu sau này cần thêm asset)
 # ========================
-app.mount("/web", StaticFiles(directory=".", html=True), name="static")
+# Ví dụ: app.mount("/web", StaticFiles(directory=BASE_DIR, html=True), name="static")
+# Hiện tại UI chỉ là 1 file index.html nên không bắt buộc.
