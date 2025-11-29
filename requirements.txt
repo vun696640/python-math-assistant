@@ -1,5 +1,5 @@
 fastapi
 uvicorn
 pydantic
-openai
-python-dotenv
+openai>=1.0.0
+reportlab
