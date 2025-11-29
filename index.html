@@ -1,18 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['$', '$'], ['\\(', '\\)']],
-      displayMath: [['$$', '$$']]
-    },
-    svg: { fontCache: 'global' }
-  };
-</script>
-<script id="MathJax-script" async
-        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-
   <meta charset="UTF-8">
   <title>K9 Math AI Assistant – Chat</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -179,23 +167,11 @@
       gap: 4px;
       max-width: 55%;
     }
-    .tag-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      justify-content: flex-end;
-    }
-    .tag-chip {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(16,185,129,0.15);
-      color: #a7f3d0;
-      border: 1px solid rgba(16,185,129,0.35);
-    }
     .header-actions {
       display: flex;
       gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
     .header-btn {
       font-size: 11px;
@@ -218,6 +194,20 @@
     .header-btn:disabled {
       opacity: 0.5;
       cursor: default;
+    }
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: flex-end;
+    }
+    .tag-chip {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(16,185,129,0.15);
+      color: #a7f3d0;
+      border: 1px solid rgba(16,185,129,0.35);
     }
 
     .messages {
@@ -375,31 +365,57 @@
       display: none;
     }
 
-    /* Test panel */
+    /* Test panel overlay */
     .test-panel {
-      border-top: 1px solid #111827;
-      background: #020617;
-      padding: 8px 16px 10px;
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 40;
       font-size: 12px;
+    }
+    .test-panel-inner {
+      width: min(960px, 95vw);
+      max-height: 85vh;
+      background: #020617;
+      border-radius: 16px;
+      border: 1px solid #111827;
+      padding: 12px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     .test-panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       gap: 8px;
     }
-    .test-panel-header-title {
-      font-weight: 500;
-      color: #e5e7eb;
+    .test-panel-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
     .test-summary {
       font-size: 11px;
       color: var(--text-soft);
-      text-align: right;
+    }
+    .test-panel-switch {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .test-panel-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 6px;
     }
     .test-table-wrapper {
-      max-height: 200px;
+      max-height: 55vh;
       overflow-y: auto;
       border-radius: 8px;
       border: 1px solid #111827;
@@ -455,6 +471,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
           integrity="sha512-3cWrdYkRjakGugHgdGXNq35p3xNmPR9U1FVLtZL1YI7DiIP9N6byN1Nsx3Rp3XIanFkFJxuxMxDPZLIFLZhoUw=="
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
 </head>
 <body>
   <div class="layout">
@@ -489,49 +517,70 @@
       <header class="main-header">
         <div class="main-header-title">
           <span>Chat với Trợ lý Toán AI</span>
-          <span class="sub">Đặt câu hỏi, tải bài tập, nhờ AI phân tích &amp; phân loại theo chuẩn T1–T15.</span>
+          <span class="sub">
+            Đặt câu hỏi, tải bài tập, nhờ AI phân tích &amp; phân loại theo chuẩn T1–T15.
+          </span>
         </div>
         <div class="header-right">
-        <div class="header-actions">
-  <button class="header-btn" id="btn-run-tests">
-    <span class="icon">🧪</span>
-    <span>Chạy test T1–T15</span>
-  </button>
+          <div class="header-actions">
+            <button class="header-btn" id="btn-run-tests">
+              <span class="icon">🧪</span>
+              <span>Làm bài kiểm tra đầu vào / đầu ra</span>
+            </button>
 
-  <!-- 🔹 Nút mới: Tạo quiz luyện tập -->
-  <button class="header-btn" id="btn-create-quiz">
-    <span class="icon">❓</span>
-    <span>Tạo quiz luyện tập</span>
-  </button>
-
-  <button class="header-btn" id="btn-export-pdf" disabled>
-    <span class="icon">📄</span>
-    <span>Xuất PDF báo cáo</span>
-  </button>
-</div>
+            <button class="header-btn" id="btn-create-quiz">
+              <span class="icon">❓</span>
+              <span>Tạo quiz luyện tập</span>
+            </button>
+          </div>
+          <div class="tag-list" id="header-tags">
+            <!-- Dynamic tags -->
+          </div>
+        </div>
       </header>
 
       <section class="messages" id="messages"></section>
 
-      <!-- PANEL KẾT QUẢ TEST -->
+      <!-- TEST PANEL OVERLAY -->
       <section class="test-panel" id="test-panel" style="display:none;">
-        <div class="test-panel-header">
-          <div class="test-panel-header-title">Báo cáo kiểm thử chuẩn T1–T15</div>
-          <div class="test-summary" id="test-summary"></div>
-        </div>
-        <div class="test-table-wrapper">
-          <table class="test-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Input</th>
-                <th>Expected</th>
-                <th>Detected</th>
-                <th>Kết quả</th>
-              </tr>
-            </thead>
-            <tbody id="test-table-body"></tbody>
-          </table>
+        <div class="test-panel-inner">
+          <div class="test-panel-header">
+            <div class="test-panel-title-group">
+              <div class="test-panel-header-title" id="test-panel-title">
+                Bài kiểm tra đầu vào T1–T15
+              </div>
+              <div class="test-summary" id="test-summary"></div>
+            </div>
+            <div class="test-panel-switch">
+              <button class="header-btn" id="btn-switch-input">Đầu vào</button>
+              <button class="header-btn" id="btn-switch-output">Đầu ra</button>
+              <button class="header-btn" id="btn-close-test">✕</button>
+            </div>
+          </div>
+          <div class="test-table-wrapper">
+            <table class="test-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Câu hỏi</th>
+                  <th>Chuẩn</th>
+                  <th>Đáp án của bạn</th>
+                  <th>Kết quả</th>
+                </tr>
+              </thead>
+              <tbody id="test-table-body"></tbody>
+            </table>
+          </div>
+          <div class="test-panel-footer">
+            <button class="header-btn" id="btn-grade-test">
+              <span class="icon">✔</span>
+              <span>Chấm bài</span>
+            </button>
+            <button class="header-btn" id="btn-export-pdf" disabled>
+              <span class="icon">📄</span>
+              <span>Xuất PDF báo cáo</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -560,485 +609,540 @@
     </main>
   </div>
 
-<script>
-  // ======= CẤU HÌNH BACKEND (cùng domain Render) =======
-  const API_BASE = "";
+  <script>
+    // ======= CẤU HÌNH BACKEND (cùng domain) =======
+    const API_BASE = ""; // dùng đường dẫn tương đối: "/chat/message", "/file/parse"
 
-  // ======= STATE FRONTEND =======
-  let conversations = {};
-  let currentId = null;
-  let chatCounter = 1;
+    // ======= STATE FRONTEND =======
+    let conversations = {};
+    let currentId = null;
+    let chatCounter = 1;
 
-  const chatListEl = document.getElementById("chat-list");
-  const messagesEl = document.getElementById("messages");
-  const headerTagsEl = document.getElementById("header-tags");
-  const inputEl = document.getElementById("chat-input");
-  const sendBtn = document.getElementById("btn-send");
-  const statusLine = document.getElementById("status-line");
-  const fileInput = document.getElementById("file-input");
-  const uploadBtn = document.getElementById("btn-upload");
-  const newChatBtn = document.getElementById("btn-new-chat");
-  const statusText = document.getElementById("status-text");
+    const chatListEl = document.getElementById("chat-list");
+    const messagesEl = document.getElementById("messages");
+    const headerTagsEl = document.getElementById("header-tags");
+    const inputEl = document.getElementById("chat-input");
+    const sendBtn = document.getElementById("btn-send");
+    const statusLine = document.getElementById("status-line");
+    const fileInput = document.getElementById("file-input");
+    const uploadBtn = document.getElementById("btn-upload");
+    const newChatBtn = document.getElementById("btn-new-chat");
+    const statusText = document.getElementById("status-text");
 
-  const runTestsBtn = document.getElementById("btn-run-tests");
-  const exportPdfBtn = document.getElementById("btn-export-pdf");
-  const testPanel = document.getElementById("test-panel");
-  const testTableBody = document.getElementById("test-table-body");
-  const testSummary = document.getElementById("test-summary");
+    const runTestsBtn = document.getElementById("btn-run-tests");
+    const createQuizBtn = document.getElementById("btn-create-quiz");
+    const exportPdfBtn = document.getElementById("btn-export-pdf");
 
-  // nút tạo quiz mới
-  const createQuizBtn = document.getElementById("btn-create-quiz");
+    const testPanel = document.getElementById("test-panel");
+    const testPanelTitle = document.getElementById("test-panel-title");
+    const testTableBody = document.getElementById("test-table-body");
+    const testSummary = document.getElementById("test-summary");
+    const btnSwitchInput = document.getElementById("btn-switch-input");
+    const btnSwitchOutput = document.getElementById("btn-switch-output");
+    const btnCloseTest = document.getElementById("btn-close-test");
+    const btnGradeTest = document.getElementById("btn-grade-test");
 
-  let lastTestResults = null; // lưu để xuất PDF
+    let lastTestResults = null;
+    let testMode = "input"; // 'input' | 'output'
+    let testQuestions = [];
 
-  function createNewConversation() {
-    const id = "chat-" + Date.now();
-    conversations[id] = {
-      id,
-      title: "Cuộc trò chuyện " + chatCounter++,
-      messages: [],
-      standards: [],
-    };
-    currentId = id;
-    renderChatList();
-    renderMessages();
-    updateHeaderTags();
-    inputEl.focus();
-  }
-
-  function getCurrentConversation() {
-    if (!currentId || !conversations[currentId]) {
-      createNewConversation();
-    }
-    return conversations[currentId];
-  }
-
-  function renderChatList() {
-    chatListEl.innerHTML = "";
-    Object.values(conversations).forEach((conv) => {
-      const div = document.createElement("div");
-      div.className = "chat-item" + (conv.id === currentId ? " active" : "");
-      div.onclick = () => {
-        currentId = conv.id;
-        renderChatList();
-        renderMessages();
-        updateHeaderTags();
+    function createNewConversation() {
+      const id = "chat-" + Date.now();
+      conversations[id] = {
+        id,
+        title: "Cuộc trò chuyện " + chatCounter++,
+        messages: [],
+        standards: []
       };
-      const title = document.createElement("div");
-      title.className = "chat-item-title";
-      title.textContent = conv.title;
-      const sub = document.createElement("div");
-      sub.className = "chat-item-sub";
-      if (conv.messages.length) {
-        sub.textContent =
-          conv.messages[0].content.slice(0, 32) +
-          (conv.messages[0].content.length > 32 ? "…" : "");
-      } else {
-        sub.textContent = "Chưa có nội dung";
+      currentId = id;
+      renderChatList();
+      renderMessages();
+      updateHeaderTags();
+      inputEl.focus();
+    }
+
+    function getCurrentConversation() {
+      if (!currentId || !conversations[currentId]) {
+        createNewConversation();
       }
-      div.appendChild(title);
-      div.appendChild(sub);
-      chatListEl.appendChild(div);
-    });
-  }
+      return conversations[currentId];
+    }
 
-  function renderMessages() {
-    const conv = getCurrentConversation();
-    messagesEl.innerHTML = "";
+    function renderChatList() {
+      chatListEl.innerHTML = "";
+      Object.values(conversations).forEach(conv => {
+        const div = document.createElement("div");
+        div.className = "chat-item" + (conv.id === currentId ? " active" : "");
+        div.onclick = () => {
+          currentId = conv.id;
+          renderChatList();
+          renderMessages();
+          updateHeaderTags();
+        };
+        const title = document.createElement("div");
+        title.className = "chat-item-title";
+        title.textContent = conv.title;
+        const sub = document.createElement("div");
+        sub.className = "chat-item-sub";
+        if (conv.messages.length) {
+          sub.textContent = conv.messages[0].content.slice(0, 32) +
+            (conv.messages[0].content.length > 32 ? "…" : "");
+        } else {
+          sub.textContent = "Chưa có nội dung";
+        }
+        div.appendChild(title);
+        div.appendChild(sub);
+        chatListEl.appendChild(div);
+      });
+    }
 
-    if (!conv.messages.length) {
-      const intro = document.createElement("div");
-      intro.style.color = "#9ca3af";
-      intro.style.fontSize = "13px";
-      intro.style.maxWidth = "480px";
-      intro.style.margin = "40px auto 0";
-      intro.style.textAlign = "center";
-      intro.innerHTML =
-        "Chào bạn 👋<br>Đây là trợ lý Toán 9 AI: giải bài, gợi ý cách học, và có thể tạo quiz luyện tập theo chuẩn T1–T15.";
-      messagesEl.appendChild(intro);
+    function renderMessages() {
+      const conv = getCurrentConversation();
+      messagesEl.innerHTML = "";
+      if (!conv.messages.length) {
+        const intro = document.createElement("div");
+        intro.style.color = "#9ca3af";
+        intro.style.fontSize = "13px";
+        intro.style.maxWidth = "480px";
+        intro.style.margin = "40px auto 0";
+        intro.style.textAlign = "center";
+        intro.innerHTML = "Chào bạn 👋<br>Hãy đặt câu hỏi Toán 9, tải file bài tập, hoặc nhờ mình phân tích lỗi sai theo chuẩn T1–T15.";
+        messagesEl.appendChild(intro);
+      } else {
+        conv.messages.forEach(msg => {
+          const row = document.createElement("div");
+          row.className = "message-row " + msg.role;
 
+          const wrapper = document.createElement("div");
+          const meta = document.createElement("div");
+          meta.className = "message-meta";
+
+          const avatar = document.createElement("span");
+          avatar.className = "avatar " + msg.role;
+          avatar.textContent = msg.role === "assistant" ? "AI" : "You";
+
+          const metaText = document.createElement("span");
+          metaText.textContent = msg.role === "assistant" ? "Trợ lý Toán AI" : "Bạn";
+
+          meta.appendChild(avatar);
+          meta.appendChild(metaText);
+
+          const bubble = document.createElement("div");
+          bubble.className = "message-bubble";
+          bubble.textContent = msg.content;
+
+          wrapper.appendChild(meta);
+          wrapper.appendChild(bubble);
+          row.appendChild(wrapper);
+          messagesEl.appendChild(row);
+        });
+      }
+
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      // Render lại MathJax sau khi cập nhật DOM
       if (window.MathJax && window.MathJax.typesetPromise) {
         window.MathJax.typesetPromise();
       }
-      return;
     }
 
-    conv.messages.forEach((msg) => {
-      const row = document.createElement("div");
-      row.className = "message-row " + msg.role;
-
-      const wrapper = document.createElement("div");
-      const meta = document.createElement("div");
-      meta.className = "message-meta";
-
-      const avatar = document.createElement("span");
-      avatar.className = "avatar " + msg.role;
-      avatar.textContent = msg.role === "assistant" ? "AI" : "You";
-
-      const metaText = document.createElement("span");
-      metaText.textContent =
-        msg.role === "assistant" ? "Trợ lý Toán AI" : "Bạn";
-
-      meta.appendChild(avatar);
-      meta.appendChild(metaText);
-
-      const bubble = document.createElement("div");
-      bubble.className = "message-bubble";
-
-      // ---- Markdown bold → HTML bold ----
-      let html = msg.content.replace(
-        /\*\*(.*?)\*\*/g,
-        "<strong>$1</strong>"
-      );
-      bubble.innerHTML = html;
-
-      wrapper.appendChild(meta);
-      wrapper.appendChild(bubble);
-      row.appendChild(wrapper);
-      messagesEl.appendChild(row);
-    });
-
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-
-    // Render MathJax sau khi DOM đã cập nhật
-    if (window.MathJax && window.MathJax.typesetPromise) {
-      window.MathJax.typesetPromise();
-    }
-  }
-
-  function updateHeaderTags() {
-    const conv = getCurrentConversation();
-    headerTagsEl.innerHTML = "";
-    if (!conv.standards || !conv.standards.length) return;
-    conv.standards.forEach((code) => {
-      const div = document.createElement("div");
-      div.className = "tag-chip";
-      div.textContent = code;
-      headerTagsEl.appendChild(div);
-    });
-  }
-
-  async function sendMessage() {
-    const text = inputEl.value.trim();
-    if (!text) return;
-    const conv = getCurrentConversation();
-
-    conv.messages.push({ role: "user", content: text });
-    inputEl.value = "";
-    renderMessages();
-    statusLine.textContent = "Đang suy nghĩ…";
-    statusLine.classList.remove("error");
-    sendBtn.disabled = true;
-
-    try {
-      const payload = {
-        messages: conv.messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      };
-      const res = await fetch(API_BASE + "/chat/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+    function updateHeaderTags() {
+      const conv = getCurrentConversation();
+      headerTagsEl.innerHTML = "";
+      if (!conv.standards || !conv.standards.length) return;
+      conv.standards.forEach(code => {
+        const div = document.createElement("div");
+        div.className = "tag-chip";
+        div.textContent = code;
+        headerTagsEl.appendChild(div);
       });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      conv.messages.push({ role: "assistant", content: data.reply });
-      conv.standards = data.standards || [];
-      renderMessages();
-      updateHeaderTags();
-      renderChatList();
-      statusLine.textContent = "";
-    } catch (err) {
-      console.error(err);
-      statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
-      statusLine.classList.add("error");
-    } finally {
-      sendBtn.disabled = false;
     }
-  }
 
-  // Gửi lại toàn bộ lịch sử hội thoại hiện tại
-  async function sendHistoryOnly() {
-    const conv = getCurrentConversation();
-    if (!conv.messages.length) return;
-    statusLine.textContent = "Đang phân tích…";
-    statusLine.classList.remove("error");
-    sendBtn.disabled = true;
-
-    try {
-      const payload = {
-        messages: conv.messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      };
-      const res = await fetch(API_BASE + "/chat/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      conv.messages.push({ role: "assistant", content: data.reply });
-      conv.standards = data.standards || [];
-      renderMessages();
-      updateHeaderTags();
-      renderChatList();
-      statusLine.textContent = "";
-    } catch (err) {
-      console.error(err);
-      statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
-      statusLine.classList.add("error");
-    } finally {
-      sendBtn.disabled = false;
-    }
-  }
-
-  // Upload file → /file/parse → thêm vào chat → gọi AI
-  uploadBtn.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-
-    const conv = getCurrentConversation();
-    statusLine.textContent = "Đang đọc file " + file.name + "…";
-    statusLine.classList.remove("error");
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch(API_BASE + "/file/parse", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      const snippet =
-        data.content.length > 600
-          ? data.content.slice(0, 600) + "\n[...đã cắt bớt...]"
-          : data.content;
-      const text =
-        `Nội dung trích từ file "${data.filename}":\n\n` + snippet;
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      const conv = getCurrentConversation();
 
       conv.messages.push({ role: "user", content: text });
+      inputEl.value = "";
       renderMessages();
+      statusLine.textContent = "Đang suy nghĩ…";
+      statusLine.classList.remove("error");
+      sendBtn.disabled = true;
 
-      await sendHistoryOnly();
-    } catch (err) {
-      console.error(err);
-      statusLine.textContent = "Không đọc được file. Kiểm tra /file/parse.";
-      statusLine.classList.add("error");
-    } finally {
-      fileInput.value = "";
-    }
-  });
-
-  // ==== CHẠY BỘ TEST T1–T15 ====
-  async function runTests() {
-    testPanel.style.display = "block";
-    testSummary.textContent = "Đang lấy bộ test…";
-    testTableBody.innerHTML = "";
-    runTestsBtn.disabled = true;
-    exportPdfBtn.disabled = true;
-    lastTestResults = null;
-
-    try {
-      const res = await fetch(API_BASE + "/api/generate_tests");
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      const tests = data.tests || [];
-      if (!tests.length) throw new Error("Không nhận được test nào từ API.");
-
-      let results = [];
-      let passed = 0;
-
-      for (let i = 0; i < tests.length; i++) {
-        const t = tests[i];
-        testSummary.textContent = `Đang chạy test ${i + 1}/${tests.length}…`;
-
+      try {
         const payload = {
-          messages: [{ role: "user", content: t.input }],
+          messages: conv.messages.map(m => ({ role: m.role, content: m.content }))
         };
-        const r = await fetch(API_BASE + "/chat/message", {
+        const res = await fetch(API_BASE + "/chat/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(payload)
         });
-
-        let detected = [];
-        if (r.ok) {
-          const d = await r.json();
-          detected = d.standards || [];
-        } else {
-          detected = ["<error " + r.status + ">"];
-        }
-
-        const expSorted = [...t.expected_standards].sort().join(",");
-        const detSorted = [...detected].sort().join(",");
-        const ok = expSorted === detSorted;
-
-        if (ok) passed++;
-
-        results.push({
-          index: i + 1,
-          input: t.input,
-          expected: t.expected_standards,
-          detected,
-          ok,
-        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        conv.messages.push({ role: "assistant", content: data.reply });
+        conv.standards = data.standards || [];
+        renderMessages();
+        updateHeaderTags();
+        renderChatList();
+        statusLine.textContent = "";
+      } catch (err) {
+        console.error(err);
+        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
+        statusLine.classList.add("error");
+      } finally {
+        sendBtn.disabled = false;
       }
-
-      // Render bảng
-      testTableBody.innerHTML = "";
-      results.forEach((r) => {
-        const tr = document.createElement("tr");
-
-        const tdIndex = document.createElement("td");
-        tdIndex.textContent = r.index;
-
-        const tdInput = document.createElement("td");
-        tdInput.textContent =
-          r.input.length > 150 ? r.input.slice(0, 150) + "…" : r.input;
-
-        const tdExpected = document.createElement("td");
-        tdExpected.textContent = r.expected.join(", ");
-
-        const tdDetected = document.createElement("td");
-        tdDetected.textContent = r.detected.join(", ");
-
-        const tdResult = document.createElement("td");
-        const badge = document.createElement("span");
-        badge.className = r.ok ? "badge-pass" : "badge-fail";
-        badge.textContent = r.ok ? "PASS" : "FAIL";
-        tdResult.appendChild(badge);
-
-        tr.appendChild(tdIndex);
-        tr.appendChild(tdInput);
-        tr.appendChild(tdExpected);
-        tr.appendChild(tdDetected);
-        tr.appendChild(tdResult);
-
-        testTableBody.appendChild(tr);
-      });
-
-      const total = results.length;
-      const failed = total - passed;
-      testSummary.textContent = `Tổng: ${total} test • PASS: ${passed} • FAIL: ${failed}`;
-      lastTestResults = { total, passed, failed, results };
-      exportPdfBtn.disabled = total === 0;
-    } catch (err) {
-      console.error(err);
-      testSummary.textContent = "Lỗi khi chạy test: " + err.message;
-      lastTestResults = null;
-    } finally {
-      runTestsBtn.disabled = false;
     }
-  }
 
-  // ==== XUẤT PDF BÁO CÁO ====
-  function exportPdfReport() {
-    if (!lastTestResults) return;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    // Gửi lại toàn bộ lịch sử hội thoại hiện tại (dùng sau khi đọc file)
+    async function sendHistoryOnly() {
+      const conv = getCurrentConversation();
+      if (!conv.messages.length) return;
+      statusLine.textContent = "Đang phân tích…";
+      statusLine.classList.remove("error");
+      sendBtn.disabled = true;
 
-    let y = 40;
-    doc.setFontSize(14);
-    doc.text(
-      "Báo cáo kiểm thử chuẩn T1–T15 – K9 Math AI Assistant",
-      40,
-      y
-    );
-
-    y += 20;
-    doc.setFontSize(11);
-    doc.text("Thời gian: " + new Date().toLocaleString(), 40, y);
-
-    y += 16;
-    const s = lastTestResults;
-    doc.text(
-      `Tổng số test: ${s.total}   PASS: ${s.passed}   FAIL: ${s.failed}`,
-      40,
-      y
-    );
-
-    y += 24;
-    doc.setFontSize(11);
-    doc.text("Chi tiết:", 40, y);
-    y += 14;
-
-    const maxWidth = 500;
-
-    s.results.forEach((r) => {
-      if (y > 760) {
-        doc.addPage();
-        y = 40;
+      try {
+        const payload = {
+          messages: conv.messages.map(m => ({ role: m.role, content: m.content }))
+        };
+        const res = await fetch(API_BASE + "/chat/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        conv.messages.push({ role: "assistant", content: data.reply });
+        conv.standards = data.standards || [];
+        renderMessages();
+        updateHeaderTags();
+        renderChatList();
+        statusLine.textContent = "";
+      } catch (err) {
+        console.error(err);
+        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
+        statusLine.classList.add("error");
+      } finally {
+        sendBtn.disabled = false;
       }
-      doc.setFontSize(11);
-      doc.text(`#${r.index} – ${r.ok ? "PASS" : "FAIL"}`, 40, y);
-      y += 12;
+    }
 
-      doc.setFontSize(9);
-      doc.text("Input:", 40, y);
-      y += 10;
-      const inputLines = doc.splitTextToSize(r.input, maxWidth);
-      doc.text(inputLines, 60, y);
-      y += inputLines.length * 10;
+    // Upload file → /file/parse → thêm vào chat → gọi AI
+    uploadBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
 
-      doc.text("Expected: " + r.expected.join(", "), 60, y);
-      y += 10;
-      doc.text("Detected: " + r.detected.join(", "), 60, y);
-      y += 16;
+      const conv = getCurrentConversation();
+      statusLine.textContent = "Đang đọc file " + file.name + "…";
+      statusLine.classList.remove("error");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch(API_BASE + "/file/parse", {
+          method: "POST",
+          body: formData
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const snippet = data.content.length > 600
+          ? data.content.slice(0, 600) + "\n[...đã cắt bớt...]"
+          : data.content;
+        const text = `Nội dung trích từ file "${data.filename}":\n\n` + snippet;
+
+        conv.messages.push({ role: "user", content: text });
+        renderMessages();
+
+        await sendHistoryOnly();
+      } catch (err) {
+        console.error(err);
+        statusLine.textContent = "Không đọc được file. Kiểm tra /file/parse.";
+        statusLine.classList.add("error");
+      } finally {
+        fileInput.value = "";
+      }
     });
 
-    doc.save("Bao_cao_test_T1-T15.pdf");
-  }
-
-  // ==== TẠO QUIZ LUYỆN TẬP TỪ HỘI THOẠI HIỆN TẠI ====
-  async function createQuizFromConversation() {
-    const conv = getCurrentConversation();
-    if (!conv.messages.length) {
-      statusLine.textContent = "Hãy hỏi một bài trước rồi mình mới tạo quiz được nhé.";
-      return;
+    // ==== BÀI KIỂM TRA ĐẦU VÀO / ĐẦU RA (OVERLAY) ====
+    async function openTestPanel(mode) {
+      testMode = mode || "input";
+      testPanel.style.display = "flex";
+      testSummary.textContent =
+        "Đang tải bài kiểm tra " + (testMode === "input" ? "đầu vào" : "đầu ra") + "…";
+      exportPdfBtn.disabled = true;
+      lastTestResults = null;
+      await loadTestQuestions();
     }
 
-    const promptQuiz =
-      "Từ lời giải và các trao đổi ở trên, hãy tạo cho mình 5 câu hỏi trắc nghiệm luyện tập Toán 9, " +
-      "mỗi câu 4 đáp án A–D, ghi rõ đáp án đúng và giải thích ngắn. " +
-      "Trình bày rõ ràng, dễ đọc cho học sinh lớp 9.";
-
-    conv.messages.push({ role: "user", content: promptQuiz });
-    renderMessages();
-    await sendHistoryOnly();
-  }
-
-  // ====== Sự kiện ======
-  inputEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+    function closeTestPanel() {
+      testPanel.style.display = "none";
     }
-  });
-  sendBtn.addEventListener("click", sendMessage);
-  newChatBtn.addEventListener("click", () => {
+
+    async function loadTestQuestions() {
+      testTableBody.innerHTML = "";
+      const endpoint = testMode === "input" ? "/api/input_quiz" : "/api/output_quiz";
+
+      try {
+        const res = await fetch(API_BASE + endpoint);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        testQuestions = data.questions || [];
+        if (!testQuestions.length) throw new Error("Không có câu hỏi.");
+
+        testPanelTitle.textContent =
+          testMode === "input"
+            ? "Bài kiểm tra đầu vào T1–T15"
+            : "Bài kiểm tra đầu ra T1–T15";
+        testSummary.textContent =
+          "Chọn đáp án A–D cho từng câu, sau đó bấm \"Chấm bài\".";
+
+        // render câu hỏi
+        testTableBody.innerHTML = "";
+        testQuestions.forEach((q, idx) => {
+          const tr = document.createElement("tr");
+
+          const tdIndex = document.createElement("td");
+          tdIndex.textContent = idx + 1;
+
+          const tdQuestion = document.createElement("td");
+          tdQuestion.textContent = q.text;
+
+          const tdStandards = document.createElement("td");
+          tdStandards.textContent = q.standards.join(", ");
+
+          const tdAnswer = document.createElement("td");
+          q.options.forEach((opt, i) => {
+            const label = document.createElement("label");
+            label.style.display = "block";
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "q-" + q.id;
+            radio.value = String(i);
+            label.appendChild(radio);
+            label.appendChild(
+              document.createTextNode(
+                " " + String.fromCharCode(65 + i) + ". " + opt
+              )
+            );
+            tdAnswer.appendChild(label);
+          });
+
+          const tdResult = document.createElement("td");
+          tdResult.dataset.questionId = String(q.id);
+
+          tr.appendChild(tdIndex);
+          tr.appendChild(tdQuestion);
+          tr.appendChild(tdStandards);
+          tr.appendChild(tdAnswer);
+          tr.appendChild(tdResult);
+
+          testTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+        testSummary.textContent = "Lỗi tải bài kiểm tra: " + err.message;
+      }
+    }
+
+    function gradeCurrentTest() {
+      if (!testQuestions.length) return;
+
+      let correct = 0;
+      const results = [];
+
+      testQuestions.forEach((q, idx) => {
+        const selected = document.querySelector(
+          `input[name="q-${q.id}"]:checked`
+        );
+        const userIndex = selected ? parseInt(selected.value, 10) : null;
+        const isCorrect = userIndex === q.correct_index;
+
+        if (isCorrect) correct++;
+
+        const resultCell = testTableBody.querySelector(
+          `td[data-question-id="${q.id}"]`
+        );
+        if (resultCell) {
+          resultCell.innerHTML = "";
+          const badge = document.createElement("span");
+          badge.className = isCorrect ? "badge-pass" : "badge-fail";
+          badge.textContent = isCorrect ? "Đúng" : "Sai";
+          resultCell.appendChild(badge);
+        }
+
+        results.push({
+          index: idx + 1,
+          input: q.text,
+          expected: q.standards,
+          ok: isCorrect,
+        });
+      });
+
+      const total = testQuestions.length;
+      const failed = total - correct;
+      const modeLabel = testMode === "input" ? "đầu vào" : "đầu ra";
+
+      testSummary.textContent = `Kết quả bài kiểm tra ${modeLabel}: Đúng ${correct}/${total} câu.`;
+
+      lastTestResults = { total, passed: correct, failed, results };
+      exportPdfBtn.disabled = total === 0;
+    }
+
+    function exportPdfReport() {
+      if (!lastTestResults) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+      let y = 40;
+      doc.setFontSize(14);
+      const modeLabel = testMode === "input" ? "đầu vào" : "đầu ra";
+      doc.text(
+        `Báo cáo bài kiểm tra ${modeLabel} T1–T15 – K9 Math AI Assistant`,
+        40,
+        y
+      );
+
+      y += 20;
+      doc.setFontSize(11);
+      doc.text("Thời gian: " + new Date().toLocaleString(), 40, y);
+
+      y += 16;
+      const s = lastTestResults;
+      doc.text(
+        `Tổng số câu: ${s.total}   Đúng: ${s.passed}   Sai: ${s.failed}`,
+        40,
+        y
+      );
+
+      y += 24;
+      doc.setFontSize(11);
+      doc.text("Chi tiết:", 40, y);
+      y += 14;
+
+      const maxWidth = 500;
+
+      s.results.forEach((r) => {
+        if (y > 760) {
+          doc.addPage();
+          y = 40;
+        }
+        doc.setFontSize(11);
+        doc.text(`#${r.index} – ${r.ok ? "Đúng" : "Sai"}`, 40, y);
+        y += 12;
+
+        doc.setFontSize(9);
+        doc.text("Câu hỏi:", 40, y);
+        y += 10;
+        const inputLines = doc.splitTextToSize(r.input, maxWidth);
+        doc.text(inputLines, 60, y);
+        y += inputLines.length * 10;
+
+        doc.text(
+          "Chuẩn liên quan: " + (r.expected || []).join(", "),
+          60,
+          y
+        );
+        y += 14;
+      });
+
+      doc.save(
+        `Bao_cao_bai_kiem_tra_${modeLabel.replace(" ", "_")}_T1-T15.pdf`
+      );
+    }
+
+    // ==== QUIZ TỪ HỘI THOẠI (TẠO THÊM BÀI LUYỆN TẬP) ====
+    async function createQuizFromConversation() {
+      const conv = getCurrentConversation();
+      if (!conv.messages.length) return;
+
+      const baseText = conv.messages
+        .map(m => `${m.role === "assistant" ? "AI" : "HS"}: ${m.content}`)
+        .join("\n");
+
+      const prompt = `
+Từ nội dung trao đổi sau giữa học sinh và trợ lý Toán 9, hãy tạo một bộ 5 câu hỏi trắc nghiệm luyện tập (quiz) phù hợp:
+
+${baseText}
+
+YÊU CẦU:
+- Mỗi câu hỏi có 4 lựa chọn A, B, C, D.
+- Chỉ có 1 đáp án đúng mỗi câu.
+- Nội dung bám sát kiến thức đã xuất hiện trong đoạn hội thoại (không bịa sang chủ đề khác).
+- Trình bày theo dạng:
+
+Câu 1: ...
+A. ...
+B. ...
+C. ...
+D. ...
+Đáp án: ...
+
+Câu 2: ...
+...
+
+Chỉ trả lời nội dung quiz, không cần giải thích chi tiết.
+`;
+
+      statusLine.textContent = "AI đang tạo quiz luyện tập…";
+      statusLine.classList.remove("error");
+
+      try {
+        const res = await fetch(API_BASE + "/chat/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: prompt }]
+          })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+
+        conv.messages.push({
+          role: "assistant",
+          content: "Quiz luyện tập dựa trên cuộc trò chuyện:\n\n" + data.reply
+        });
+        renderMessages();
+        statusLine.textContent = "";
+      } catch (err) {
+        console.error(err);
+        statusLine.textContent = "Không tạo được quiz luyện tập.";
+        statusLine.classList.add("error");
+      }
+    }
+
+    // ====== Sự kiện ======
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    sendBtn.addEventListener("click", sendMessage);
+    newChatBtn.addEventListener("click", () => {
+      createNewConversation();
+      renderChatList();
+      renderMessages();
+      updateHeaderTags();
+      statusLine.textContent = "";
+    });
+
+    runTestsBtn.addEventListener("click", () => openTestPanel("input"));
+    btnSwitchInput.addEventListener("click", () => openTestPanel("input"));
+    btnSwitchOutput.addEventListener("click", () => openTestPanel("output"));
+    btnCloseTest.addEventListener("click", closeTestPanel);
+    btnGradeTest.addEventListener("click", gradeCurrentTest);
+    exportPdfBtn.addEventListener("click", exportPdfReport);
+    createQuizBtn.addEventListener("click", createQuizFromConversation);
+
+    // Init
     createNewConversation();
-    renderChatList();
-    renderMessages();
-    updateHeaderTags();
-    statusLine.textContent = "";
-  });
-
-  runTestsBtn.addEventListener("click", runTests);
-  exportPdfBtn.addEventListener("click", exportPdfReport);
-  createQuizBtn.addEventListener("click", createQuizFromConversation);
-
-  // Init
-  createNewConversation();
-  statusText.textContent = "Server: " + window.location.origin;
-</script>
-
+    statusText.textContent = "Server: " + window.location.origin;
+  </script>
 </body>
 </html>
 
