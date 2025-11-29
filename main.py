@@ -35,28 +35,33 @@ class ChatMessage(BaseModel):
     role: str
     content: str
 
+
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
+
 
 class ChatResponse(BaseModel):
     reply: str
     standards: List[str]
+
 
 class Standard(BaseModel):
     code: str
     name: str
     description: str
 
+
 class TestCase(BaseModel):
     input: str
     expected_standards: List[str]
+
 
 class TestGenerationResponse(BaseModel):
     tests: List[TestCase]
 
 
 # ========================
-#  Fallback T1–T15 nếu không có file .md
+#  FALLBACK T1–T15 (nếu không có file .md)
 # ========================
 def default_standards() -> Dict[str, Standard]:
     names = {
@@ -68,10 +73,10 @@ def default_standards() -> Dict[str, Standard]:
         "T6": "Hệ phương trình",
         "T7": "Bất phương trình",
         "T8": "Hàm số & đồ thị",
-        "T9": "Tam giác vuông & Pythagore",
+        "T9": "Tam giác vuông & định lý Pythagore",
         "T10": "Đường tròn",
         "T11": "Tiếp tuyến",
-        "T12": "Hình trụ, nón, cầu",
+        "T12": "Hình trụ, hình nón, hình cầu",
         "T13": "Thống kê",
         "T14": "Xác suất",
         "T15": "Bài toán thực tế",
@@ -80,14 +85,14 @@ def default_standards() -> Dict[str, Standard]:
         code: Standard(
             code=code,
             name=name,
-            description=f"Chuẩn {code} – {name} (mô tả mặc định, dùng khi thiếu file chuan_dau_ra.md)."
+            description=f"Chuẩn {code} – {name} (mô tả mặc định dùng khi thiếu file chuan_dau_ra.md).",
         )
         for code, name in names.items()
     }
 
 
 # ========================
-#  LOAD CHUẨN ĐẦU RA (T1–T15)
+#  LOAD CHUẨN ĐẦU RA
 # ========================
 def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     if not os.path.exists(path):
@@ -100,19 +105,17 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     standards: Dict[str, Standard] = {}
     code = None
     name = ""
-    buf = []
+    buf: List[str] = []
 
     for line in lines:
         s = line.strip()
         if s.startswith("## "):
-            # Lưu chuẩn trước đó
             if code:
                 standards[code] = Standard(
                     code=code,
                     name=name,
-                    description="\n".join(buf).strip()
+                    description="\n".join(buf).strip(),
                 )
-            # Bắt đầu chuẩn mới
             after = s[3:].strip()
             if "–" in after:
                 parts = after.split("–", 1)
@@ -127,16 +130,15 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
             if code:
                 buf.append(line.rstrip())
 
-    # Chuẩn cuối cùng
     if code:
         standards[code] = Standard(
             code=code,
             name=name,
-            description="\n".join(buf).strip()
+            description="\n".join(buf).strip(),
         )
 
     if not standards:
-        print("[WARN] File chuẩn đầu ra rỗng, dùng fallback mặc định.")
+        print("[WARN] File chuẩn đầu ra rỗng – dùng fallback mặc định.")
         standards = default_standards()
 
     print(f"[INFO] Loaded {len(standards)} standards: {list(standards.keys())}")
@@ -178,7 +180,6 @@ def detect_standards_from_text(text: str) -> List[str]:
     if not found:
         found.append("T1")
 
-    # Chỉ giữ chuẩn có thật trong STANDARDS
     return [x for x in found if x in STANDARDS]
 
 
@@ -189,12 +190,12 @@ def detect_standards_from_text(text: str) -> List[str]:
 def api_health():
     return {
         "status": "ok",
-        "standards_loaded": list(STANDARDS.keys())
+        "standards_loaded": list(STANDARDS.keys()),
     }
 
 
 # ========================
-#  API: CHAT
+#  API: CHAT – trợ lý dạy kèm AI
 # ========================
 @app.post("/chat/message", response_model=ChatResponse)
 async def chat_message(req: ChatRequest):
@@ -202,15 +203,21 @@ async def chat_message(req: ChatRequest):
         raise HTTPException(500, "Thiếu OPENAI_API_KEY")
 
     standards_text = "\n".join(
-        f"{s.code}: {s.name}\n{s.description}\n"
-        for s in STANDARDS.values()
+        f"{s.code}: {s.name}\n{s.description}\n" for s in STANDARDS.values()
     )
 
     system_prompt = (
-        "Bạn là trợ lý Toán lớp 9.\n"
-        "- Giải thích rõ ràng, chi tiết, từng bước.\n"
-        "- Bám sát chuẩn đầu ra T1–T15.\n"
-        "- Khi viết công thức, hãy dùng LaTeX trong cặp $$...$$ hoặc $...$ để frontend hiển thị bằng MathJax.\n\n"
+        "Bạn là Trợ lý Toán 9 AI dành cho học sinh (một gia sư AI chứ không chỉ là chatbot).\n"
+        "Nguyên tắc:\n"
+        "1) Giải chi tiết, từng bước, đúng chương trình Toán 9.\n"
+        "2) Bám sát chuẩn đầu ra T1–T15.\n"
+        "3) Sau khi giải xong, phải:\n"
+        "   - Tóm tắt ngắn gọn: Học sinh vừa ôn lại/đặt trọng tâm vào kiến thức gì.\n"
+        "   - Đề xuất 1–3 hoạt động học tập tiếp theo (vd: làm thêm dạng nào, nhắc lại công thức nào).\n"
+        "   - Gợi ý rằng bạn có thể tạo một quiz luyện tập nếu học sinh muốn.\n"
+        "4) Khi viết công thức, dùng LaTeX với $...$ cho inline và $$...$$ cho công thức đứng riêng.\n"
+        "5) Trình bày gọn gàng, không chèn quá nhiều dòng trống.\n\n"
+        "Dưới đây là mô tả tóm tắt các chuẩn đầu ra:\n\n"
         f"{standards_text}"
     )
 
@@ -220,13 +227,12 @@ async def chat_message(req: ChatRequest):
     try:
         completion = client.chat.completions.create(
             model="gpt-4.1-mini",
-            messages=messages
+            messages=messages,
         )
         reply = completion.choices[0].message.content.strip()
     except Exception as e:
         raise HTTPException(500, f"OpenAI error: {e}")
 
-    # detect standards
     last_user_msg = ""
     for m in reversed(req.messages):
         if m.role == "user":
@@ -239,48 +245,74 @@ async def chat_message(req: ChatRequest):
 
 
 # ========================
-#  API: TEST GENERATOR (AI TỰ SINH TEST)
+#  API: GENERATE TESTS – TẠO BỘ TEST OFFLINE, KHÔNG GỌI OPENAI
 # ========================
 @app.get("/api/generate_tests", response_model=TestGenerationResponse)
 async def generate_tests():
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise HTTPException(500, "Thiếu OPENAI_API_KEY")
-
-    standards_text = "\n".join(
-        f"{s.code}: {s.name}\n{s.description}\n"
-        for s in STANDARDS.values()
-    )
-
-    prompt = f"""
-    Hãy tạo 5 bài kiểm tra (test case) cho Toán 9 dựa trên các chuẩn đầu ra sau:
-
-    {standards_text}
-
-    Yêu cầu:
-    - Không lặp lại ví dụ trong chuẩn đầu ra.
-    - Mỗi test có dạng:
-        {{
-            "input": "Đề bài hoặc mô tả bài toán (có thể chứa LaTeX như x^2 + y^2 = 1).",
-            "expected_standards": ["T1", "T3"]
-        }}
-    - "expected_standards" chỉ chứa các mã trong: {list(STANDARDS.keys())}
-    - Chỉ xuất duy nhất một JSON object có cấu trúc:
-      {{
-        "tests": [ ... ]
-      }}
     """
+    Trả về 10 test case cố định để kiểm thử bộ phân loại T1–T15.
+    Không phụ thuộc OpenAI → không bao giờ lỗi 500.
+    """
+    tests: List[TestCase] = [
+        # T1
+        TestCase(
+            input="Tính UCLN và BCNN của 18 và 24.",
+            expected_standards=["T1"],
+        ),
+        # T2
+        TestCase(
+            input="Một cửa hàng giảm giá 20% cho một chiếc áo giá 250 000 đồng. Hỏi sau giảm giá, chiếc áo còn bao nhiêu tiền?",
+            expected_standards=["T2"],
+        ),
+        # T3
+        TestCase(
+            input="Trong tam giác ABC, biết tổng ba góc của tam giác bằng 180°. Hãy chứng minh điều đó.",
+            expected_standards=["T3"],
+        ),
+        # T4
+        TestCase(
+            input="Tính căn bậc hai của 49 và 81.",
+            expected_standards=["T4"],
+        ),
+        # T5
+        TestCase(
+            input="Giải phương trình bậc nhất: 2x - 5 = 9.",
+            expected_standards=["T5"],
+        ),
+        # T6
+        TestCase(
+            input="Giải hệ phương trình: x + y = 5, x - y = 1.",
+            expected_standards=["T6"],
+        ),
+        # T7
+        TestCase(
+            input="Giải bất phương trình: 3x - 2 > 4.",
+            expected_standards=["T7"],
+        ),
+        # T8
+        TestCase(
+            input="Cho hàm số y = 2x + 1. Hãy vẽ đồ thị hàm số này trên hệ trục tọa độ.",
+            expected_standards=["T8"],
+        ),
+        # T9 + T3
+        TestCase(
+            input="Trong tam giác vuông ABC tại A, hãy áp dụng định lý Pytago để tính độ dài cạnh còn lại.",
+            expected_standards=["T3", "T9"],
+        ),
+        # T15 (bài toán thực tế + phần trăm)
+        TestCase(
+            input="Một bồn nước hình trụ được dùng trong thực tế để chứa nước cho gia đình. Bồn có bán kính đáy 0,6 m và chiều cao 1,5 m. Tính thể tích bồn và cho biết nếu dùng hết 70% lượng nước trong bồn thì còn lại bao nhiêu mét khối nước.",
+            expected_standards=["T12", "T2", "T15"],
+        ),
+    ]
 
-    try:
-        completion = client.chat.completions.create(
-            model="gpt-4.1",
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}  # ép trả JSON chuẩn
-        )
-        raw = completion.choices[0].message.content
-        data = json.loads(raw)
-        return data
-    except Exception as e:
-        raise HTTPException(500, f"OpenAI error in test generation: {e}")
+    # Đảm bảo chỉ dùng những mã có trong STANDARDS (phòng khi file chuẩn đầu ra bị sửa)
+    filtered_tests: List[TestCase] = []
+    for t in tests:
+        valid = [c for c in t.expected_standards if c in STANDARDS]
+        filtered_tests.append(TestCase(input=t.input, expected_standards=valid))
+
+    return TestGenerationResponse(tests=filtered_tests)
 
 
 # ========================
@@ -308,7 +340,7 @@ async def parse_file(file: UploadFile = File(...)):
 
 
 # ========================
-#  ROOT: SERVE UI (index.html)
+#  ROOT: SERVE UI
 # ========================
 @app.get("/", response_class=HTMLResponse)
 def root():
@@ -317,5 +349,5 @@ def root():
             return f.read()
     return HTMLResponse(
         "<h1>Math AI Assistant</h1><p>Không tìm thấy index.html</p>",
-        status_code=500
+        status_code=500,
     )
