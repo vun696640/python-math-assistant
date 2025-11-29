@@ -679,7 +679,8 @@
     const bubble = document.createElement("div");
     bubble.className = "message-bubble";
     // dùng textContent vẫn ok với MathJax, nó đọc text node
-    bubble.textContent = msg.content;
+    let html = msg.content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    bubble.innerHTML = html;
 
     wrapper.appendChild(meta);
     wrapper.appendChild(bubble);
@@ -692,7 +693,7 @@
   // 🔥 Quan trọng: gọi MathJax sau khi đã render xong message
   if (window.MathJax && window.MathJax.typesetPromise) {
     window.MathJax.typesetPromise();
-  }
+  } 
 }
 
     function updateHeaderTags() {
