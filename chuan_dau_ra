@@ -1,0 +1,413 @@
+# Chuẩn đầu ra Toán 9 – AI For Good
+
+> Đây là danh sách YÊU CẦU ĐẠT ĐƯỢC cho AI (và học sinh) theo từng “T” nội dung từ T1 đến T15.
+
+---
+
+## T1 – Số và Lũy Thừa (Đại số)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu và phân loại được các nhóm số cơ bản: số tự nhiên, số nguyên, số nguyên tố, số hợp, số chính phương.
+- Nhận biết được quan hệ chia hết, điều kiện để một số là ước hoặc bội của số khác.
+- Hiểu khái niệm ước chung, bội chung; nắm định nghĩa và ý nghĩa của UCLN, BCNN.
+- Nhận biết được số chẵn, số lẻ và vai trò đặc biệt của số 0, số 1 trong các phép toán.
+- Hiểu bản chất “phân số bằng nhau” dựa trên tính chất nhân chéo và các phép biến đổi tương đương.
+- Nắm được các quy tắc của lũy thừa với số mũ nguyên: nhân – chia lũy thừa cùng cơ số, lũy thừa của lũy thừa, số mũ 0, số mũ âm.
+- Hiểu điều kiện để một phân số có thể biểu diễn dưới dạng số thập phân hữu hạn hoặc vô hạn tuần hoàn.
+
+#### 2. Kỹ năng (Normal)
+- Phân tích một số tự nhiên thành tích các thừa số nguyên tố bằng phương pháp chia nhẩm.
+- Tìm UCLN bằng phân tích thừa số hoặc thuật toán Euclid.
+- Tìm BCNN bằng phân tích thừa số hoặc dựa trên liên hệ UCLN · BCNN.
+- Chuyển đổi linh hoạt giữa phân số và số thập phân, bao gồm số thập phân tuần hoàn.
+- Rút gọn và biến đổi biểu thức lũy thừa theo các quy tắc số mũ.
+- So sánh hai phân số bằng quy đồng mẫu hoặc nhân chéo.
+
+#### 3. Vận dụng (Hard)
+- Giải thích được vì sao một số không thể là số nguyên tố dựa trên cấu trúc ước – bội của nó.
+- Vận dụng UCLN và BCNN để giải quyết bài toán thực tế liên quan tới chu kỳ, lặp lại, chia nhóm đều.
+- Sử dụng tính chất phân số bằng nhau và lũy thừa để chứng minh đẳng thức trong biểu thức đại số.
+
+---
+
+## T2 – Quy tắc viết số & Dấu hiệu chia hết (Đại số)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu các quy ước viết số rút gọn, dạng chuẩn, cách lược bớt số 0 vô nghĩa.
+- Nắm được cách phân tích một số tự nhiên theo các hàng (đơn vị, chục, trăm, …) và vai trò của từng chữ số.
+- Nhận biết sự khác nhau giữa cách đọc số và cách phân tích số theo giá trị các hàng.
+- Hiểu và nhớ các dấu hiệu chia hết cơ bản: 2, 5, 10 (dựa trên chữ số tận cùng) và 3, 9 (dựa trên tổng chữ số).
+- Hiểu rằng việc biểu diễn số dưới dạng tổng các hàng giúp tính nhẩm và biến đổi số hiệu quả hơn.
+- Nắm được ý nghĩa của lũy thừa là phép nhân lặp lại cùng một số nhiều lần.
+
+#### 2. Kỹ năng (Normal)
+- Tách một số thành tổng của các tích dạng “chữ số × hàng” để hỗ trợ tính toán.
+- Áp dụng chính xác các dấu hiệu chia hết để kiểm tra nhanh mà không cần thực hiện phép chia.
+- Dùng dạng tổng để tính nhẩm hoặc rút gọn biểu thức số học.
+- Biểu diễn các số lớn dưới dạng lũy thừa của 10.
+
+#### 3. Vận dụng (Hard)
+- Kết hợp nhiều dấu hiệu chia hết để loại trừ hoặc xác định nhanh kết quả trong bài toán chia hết phức tạp.
+- Phân tích cấu trúc của một số (dựa vào phân tích theo hàng và dấu hiệu chia hết) để dự đoán tính chất của số đó trong bài toán nâng cao.
+
+---
+
+## T3 – Phân số, Tỉ số, Tỉ lệ và Phần trăm (Đại số)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu phân số như một phần của đơn vị và như kết quả của phép chia hai số tự nhiên.
+- Hiểu khái niệm hai phân số bằng nhau và lý do tại sao chúng biểu diễn cùng một giá trị.
+- Nắm được quy tắc rút gọn phân số bằng cách chia cả tử và mẫu cho cùng một ước chung khác 0.
+- Hiểu khi nào một phân số được gọi là phân số tối giản.
+- Nắm được quy tắc quy đồng mẫu số hai phân số.
+- Hiểu mối liên hệ giữa phân số, tỉ số và phần trăm; ý nghĩa của kí hiệu %.
+
+#### 2. Kỹ năng (Normal)
+- Rút gọn phân số về dạng tối giản.
+- Quy đồng mẫu số của hai (hoặc nhiều) phân số để so sánh hoặc cộng/trừ.
+- So sánh hai phân số bằng quy đồng mẫu hoặc chuyển sang dạng số thập phân.
+- Chuyển đổi giữa phân số, tỉ số và phần trăm, giải các bài toán đơn giản với phần trăm.
+
+#### 3. Vận dụng (Hard)
+- Biến đổi các biểu thức chứa nhiều phân số (cộng/trừ/nhân/chia) trong một bài toán.
+- Dùng tỉ lệ và phần trăm để phân tích, đánh giá các tình huống thực tế (giảm/ tăng giá, chiết khấu, thuế, tỉ lệ học sinh…).
+- Phân tích mối quan hệ tỉ lệ thuận, tỉ lệ nghịch qua ngôn ngữ tỉ số và phần trăm.
+
+---
+
+## T4 – Phương trình bậc nhất một ẩn (Đại số)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu khái niệm biến, biểu thức đại số và nghiệm của phương trình.
+- Biết phương trình bậc nhất một ẩn có dạng tổng quát ax + b = 0 với a ≠ 0.
+- Hiểu rằng nghiệm của phương trình là giá trị của ẩn làm cho hai vế bằng nhau.
+- Nắm được khái niệm hai phương trình tương đương và các phép biến đổi không làm thay đổi tập nghiệm.
+- Hiểu các phép biến đổi hợp lệ: cộng/trừ cùng một số vào hai vế, nhân/chia hai vế cho cùng một số khác 0.
+
+#### 2. Kỹ năng (Normal)
+- Giải thành thạo phương trình bậc nhất một ẩn theo các bước biến đổi hợp lệ.
+- Kiểm tra nghiệm bằng cách thế trở lại phương trình ban đầu.
+- Đưa phương trình về dạng chuẩn (ax + b = 0) trước khi giải.
+- Nhận biết nhanh các trường hợp phương trình vô nghiệm hoặc có nghiệm duy nhất qua dạng biểu thức.
+
+#### 3. Vận dụng (Hard)
+- Giải phương trình bậc nhất có chứa phân số, có nhiều bước biến đổi phức tạp.
+- Phát hiện và giải thích các phép biến đổi sai (ví dụ chia cho 0, làm mất nghiệm).
+- Lập phương trình từ bài toán có lời (chuyển động, năng suất, chia phần…) và giải để tìm kết quả.
+
+---
+
+## T5 – Các loại góc & Quan hệ giữa các góc (Hình học)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Nắm được các khái niệm cơ bản: điểm, tia, đoạn thẳng, đường thẳng, khoảng cách giữa hai điểm.
+- Nhận biết và phân biệt được các loại góc: góc nhọn, góc vuông, góc tù, góc bẹt, góc phản, góc đầy.
+- Hiểu khái niệm hai tia đối nhau.
+- Hiểu và phân biệt: góc kề nhau, góc phụ nhau, góc bù nhau, góc đối đỉnh.
+- Nhận biết các trường hợp hai đường thẳng cắt nhau, song song, trùng nhau qua mô tả hoặc hình vẽ.
+
+#### 2. Kỹ năng (Normal)
+- Nhận dạng đúng loại góc qua hình vẽ hoặc số đo góc.
+- Sử dụng thước đo góc để đo và kiểm tra số đo các loại góc cơ bản.
+- Áp dụng tính chất: góc phụ nhau có tổng bằng 90°, góc bù nhau có tổng bằng 180°, góc đối đỉnh bằng nhau.
+- Sử dụng quan hệ giữa các góc để suy ra số đo góc chưa biết trong các bài toán đơn giản.
+
+#### 3. Vận dụng (Hard)
+- Giải bài toán có nhiều đường thẳng cắt nhau, sử dụng quan hệ phụ – bù – đối đỉnh để tìm các góc còn lại.
+- Suy luận chuỗi các quan hệ góc trong bài toán hình học phức tạp, nhiều bước.
+- Kết hợp quan hệ góc với các tính chất song song/cắt nhau để giải bài toán tổng hợp.
+
+---
+
+## T6 – Đối xứng & Góc – Cung trong đường tròn (Hình học)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu khái niệm trục đối xứng, tâm đối xứng của một hình; biết rằng một số hình có nhiều đường đối xứng (ví dụ: hình tròn).
+- Nhận biết được các hình có trục đối xứng trong thực tế và trong hình học.
+- Nắm được các yếu tố cơ bản của đường tròn: tâm, bán kính, đường kính, dây cung, cung nhỏ – cung lớn.
+- Hiểu các loại góc trong đường tròn: góc ở tâm, góc nội tiếp, góc tạo bởi tiếp tuyến và dây cung.
+- Nắm được các định lý cơ bản:
+  - Góc ở tâm bằng hai lần góc nội tiếp cùng chắn một cung.
+  - Các góc nội tiếp cùng chắn một cung thì bằng nhau.
+  - Góc tạo bởi tiếp tuyến và dây cung bằng góc nội tiếp chắn cùng cung đó.
+
+#### 2. Kỹ năng (Normal)
+- Xác định trục đối xứng, tâm đối xứng của các hình đơn giản.
+- Nhận dạng được các loại góc trong đường tròn (ở tâm, nội tiếp, tiếp tuyến – dây cung).
+- Tính được số đo góc ở tâm khi biết số đo cung (và ngược lại).
+- Tính số đo góc nội tiếp dựa trên số đo cung hoặc góc ở tâm.
+- Sử dụng tính chất tiếp tuyến – dây cung để giải bài toán tính góc.
+
+#### 3. Vận dụng (Hard)
+- Giải bài toán tổng hợp có nhiều yếu tố: nhiều cung, nhiều góc nội tiếp, góc tiếp tuyến – dây cung, nhiều đường tròn phụ.
+- Vận dụng tính chất đối xứng trong đường tròn (qua đường kính, qua trục đối xứng) để đơn giản hóa bài toán.
+- Kết hợp kiến thức về đối xứng, cung, dây, góc để giải các bài toán hình học nâng cao.
+
+---
+
+## T7 – Thu thập, Tổ chức và Biểu diễn dữ liệu (Thống kê)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu khái niệm dữ liệu, nguồn dữ liệu, cách thu thập dữ liệu (điều tra, quan sát, thí nghiệm).
+- Phân biệt được các dạng câu hỏi điều tra: câu hỏi đóng, câu hỏi mở.
+- Hiểu ý nghĩa bảng tần số, tần suất và cách tổ chức dữ liệu vào bảng.
+- Nhận biết và phân biệt các dạng biểu đồ: biểu đồ cột, biểu đồ đường, biểu đồ tranh, biểu đồ hình quạt.
+- Hiểu rằng cùng một bộ dữ liệu có thể được biểu diễn bằng nhiều loại biểu đồ khác nhau, mỗi loại nhấn mạnh một thông tin.
+
+#### 2. Kỹ năng (Normal)
+- Thu thập và sắp xếp dữ liệu vào bảng thống kê đơn giản.
+- Lập bảng tần số, tần suất từ dữ liệu thô.
+- Vẽ được biểu đồ cột, biểu đồ đường, biểu đồ tranh, biểu đồ hình quạt cơ bản.
+- Đọc và mô tả thông tin từ biểu đồ: giá trị lớn nhất/nhỏ nhất, xu hướng tăng/giảm, so sánh các nhóm.
+
+#### 3. Vận dụng (Hard)
+- Phân tích bộ dữ liệu phức tạp hơn (nhiều nhóm, nhiều loại biểu đồ).
+- Lựa chọn dạng biểu đồ phù hợp nhất để biểu diễn một bộ số liệu cụ thể.
+- Chuyển đổi giữa các dạng: bảng dữ liệu ↔ biểu đồ (cột, đường, quạt).
+- Phát hiện dữ liệu bất thường (outlier) và nêu nhận xét.
+
+---
+
+## T8 – Tập hợp, phần tử, tập hợp con (Đại số)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu khái niệm tập hợp và phần tử của tập hợp; ký hiệu thuộc (∈), không thuộc (∉).
+- Phân biệt tập hợp rỗng, tập hợp hữu hạn, tập hợp vô hạn.
+- Nắm được khái niệm tập hợp con A ⊂ B, A ⊆ B và điều kiện để A là tập hợp con của B.
+- Biết phép hợp (∪), giao (∩) và hiệu (A \ B) của hai tập hợp.
+- Hiểu ý nghĩa và ví dụ của các tập số đặc biệt: N, Z, Q, R.
+
+#### 2. Kỹ năng (Normal)
+- Liệt kê phần tử của một tập hợp khi được mô tả bằng lời hoặc quy tắc đơn giản.
+- Xác định xem một phần tử có thuộc một tập hợp hay không.
+- Vẽ biểu đồ Ven cho 2 hoặc 3 tập hợp đơn giản để minh họa quan hệ hợp, giao, hiệu.
+- Tính được số phần tử của hợp/giao/hiệu hai tập hợp trong những trường hợp cơ bản.
+
+#### 3. Vận dụng (Hard)
+- Phân tích các tập hợp lớn hơn, xác định các tập con đúng và không đúng.
+- Sử dụng công thức:
+  \[
+  |A \cup B| = |A| + |B| - |A \cap B|
+  \]
+  trong các bài toán đếm.
+- Giải bài toán số tập con của một tập hợp có n phần tử (2^n) và các biến thể (số tập con không rỗng, số tập con có k phần tử).
+- Vận dụng biểu đồ Ven để giải các bài toán đếm phức tạp hơn (nhiều điều kiện chồng chéo).
+
+---
+
+## T9 – Góc giữa hai đường thẳng & Phương trình đường thẳng (Đại số & Hình học)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu khái niệm góc giữa hai đường thẳng qua hệ số góc m₁, m₂.
+- Nắm công thức:
+  \[
+  \tan \alpha = \left|\frac{m_1 - m_2}{1 + m_1 m_2}\right|
+  \]
+- Nhận biết các trường hợp đặc biệt:
+  - Hai đường thẳng song song: m₁ = m₂.
+  - Hai đường thẳng vuông góc: m₁ · m₂ = −1.
+- Nắm các dạng phương trình đường thẳng:
+  - Dạng tổng quát: ax + by + c = 0
+  - Dạng y = mx + c
+  - Dạng đi qua điểm: y − y₁ = m(x − x₁)
+  - Dạng qua hai điểm: \(\frac{x - x_1}{x_2 - x_1} = \frac{y - y_1}{y_2 - y_1}\).
+
+#### 2. Kỹ năng (Normal)
+- Xác định hệ số góc của đường thẳng từ phương trình tổng quát.
+- Viết phương trình đường thẳng khi biết:
+  - một điểm và hệ số góc
+  - hai điểm phân biệt
+- Tìm giao điểm hai đường thẳng bằng cách giải hệ phương trình.
+- Nhận nhiên đường thẳng song song, vuông góc qua hệ số góc hoặc phương trình.
+
+#### 3. Vận dụng (Hard)
+- Giải bài toán tổng hợp liên quan tới nhiều đường thẳng: tìm phương trình thỏa mãn nhiều điều kiện (song song, vuông góc, đi qua điểm, cắt trục…).
+- Dùng phương trình đường thẳng để giải bài toán hình học tọa độ: xét dạng tam giác, tứ giác, tính diện tích.
+- Tìm góc giữa hai đường thẳng trong các tình huống phức tạp, nhiều bước biến đổi.
+
+---
+
+## T10 – Hệ phương trình bậc nhất hai ẩn (Đại số)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu khái niệm hệ hai phương trình bậc nhất hai ẩn.
+- Nắm ba khả năng của hệ:
+  - Có nghiệm duy nhất (hai đường thẳng cắt nhau).
+  - Vô nghiệm (hai đường thẳng song song).
+  - Vô số nghiệm (hai đường thẳng trùng nhau).
+- Nắm vững hai phương pháp chính:
+  - Phương pháp thế.
+  - Phương pháp cộng đại số.
+- Hiểu ý nghĩa hình học của việc giải hệ (tìm giao điểm hai đường thẳng).
+
+#### 2. Kỹ năng (Normal)
+- Giải hệ phương trình bậc nhất hai ẩn bằng phương pháp thế và cộng đại số.
+- Kiểm tra nghiệm của hệ bằng cách thế lại vào hai phương trình.
+- Nhận biết loại hệ (tương giao, song song, trùng nhau) qua hệ số a, b, c của hai phương trình.
+- Biến đổi hệ về dạng đơn giản hơn mà không làm thay đổi tập nghiệm.
+
+#### 3. Vận dụng (Hard)
+- Giải hệ có chứa phân số, hệ có hệ số phức tạp.
+- Lập hệ phương trình từ bài toán có lời (chuyển động, phân chia, năng suất…) và giải.
+- Kết hợp giải hệ với bài toán hình học tọa độ (tìm giao điểm, khoảng cách, diện tích).
+
+---
+
+## T11 – Chu vi & Diện tích các hình phẳng (Hình học)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Nắm các công thức chu vi và diện tích cơ bản:
+  - Hình chữ nhật: \(P = 2(a + b)\), \(S = ab\).
+  - Hình vuông: \(P = 4a\), \(S = a^2\).
+  - Tam giác: \(P = a + b + c\), \(S = \frac12 a h_a\).
+  - Hình bình hành: \(P = 2(a + b)\), \(S = a h_a\).
+  - Hình thang: \(P = a + b + c + d\), \(S = \frac12 (a + b)h\).
+  - Hình thoi: \(P = 4a\), \(S = \frac12 d_1 d_2\).
+  - Hình tròn: chu vi \(C = 2\pi R\), diện tích \(S = \pi R^2\).
+- Hiểu mối liên hệ giữa đường kính, bán kính, chu vi, diện tích đường tròn.
+
+#### 2. Kỹ năng (Normal)
+- Tính được chu vi, diện tích của các hình phẳng cơ bản.
+- Đổi đơn vị diện tích (cm², m², km²) để phù hợp với bài toán.
+- Tìm cạnh, bán kính, đường kính… khi biết chu vi hoặc diện tích.
+- Áp dụng vào các bài toán thực tế: diện tích sân, vườn, lô đất, mặt sàn.
+
+#### 3. Vận dụng (Hard)
+- Giải các bài toán diện tích phức hợp (hình ghép, vùng còn lại, vùng bị che khuất).
+- So sánh diện tích giữa các hình với cùng chu vi hoặc cùng diện tích.
+- Bài toán tối ưu đơn giản: cùng chu vi, hình nào diện tích lớn hơn; cùng diện tích, hình nào chu vi nhỏ hơn.
+- Vận dụng công thức diện tích trong mặt phẳng tọa độ (khi biết tọa độ đỉnh).
+
+---
+
+## T12 – Tam giác vuông, Định lý Pythagoras & Tỉ số lượng giác (Hình học)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu tam giác vuông, cạnh huyền, cạnh góc vuông.
+- Nắm định lý Pythagoras: \(a^2 + b^2 = c^2\) (c là cạnh huyền).
+- Hiểu khái niệm tam giác đồng dạng và các điều kiện đồng dạng cơ bản.
+- Biết các tỉ số lượng giác trong tam giác vuông:
+  - \(\sin \theta = \frac{\text{đối}}{\text{huyền}}\),
+  - \(\cos \theta = \frac{\text{kề}}{\text{huyền}}\),
+  - \(\tan \theta = \frac{\text{đối}}{\text{kề}}\).
+
+#### 2. Kỹ năng (Normal)
+- Xác định cạnh đối, cạnh kề, cạnh huyền tương ứng với một góc nhọn trong tam giác vuông.
+- Áp dụng định lý Pythagoras để tính cạnh còn lại khi biết hai cạnh.
+- Sử dụng tỉ số lượng giác để tính cạnh hoặc góc trong tam giác vuông (ở mức cơ bản).
+- Nhận dạng và dùng tam giác đồng dạng để tìm tỉ số cạnh.
+- Vận dụng vào bài toán thực tế đơn giản (độ cao, chiều dài thang, bóng đổ…).
+
+#### 3. Vận dụng (Hard)
+- Giải bài toán kết hợp Pythagoras, lượng giác, đồng dạng trong nhiều bước.
+- Tìm độ dài, góc, diện tích trong các cấu hình có nhiều tam giác vuông lồng nhau.
+- Giải các bài toán thực tế nâng cao: đo chiều cao khó đo trực tiếp, tính khoảng cách xa bằng góc nhìn.
+
+---
+
+## T13 – Thời gian – Tốc độ – Quãng đường (Đại số & Ứng dụng)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Nắm các đơn vị thời gian: giây, phút, giờ, ngày, tuần, tháng.
+- Nắm công thức liên hệ giữa quãng đường, tốc độ và thời gian:
+  - \(s = v \cdot t\),
+  - \(v = \frac{s}{t}\), \(t = \frac{s}{v}\).
+- Biết các đơn vị tốc độ thường dùng: m/s, km/h và cách đổi:
+  - \(1\ \text{m/s} = 3{,}6\ \text{km/h}\).
+- Hiểu khái niệm sai số đo, độ chính xác và việc làm tròn số đo.
+
+#### 2. Kỹ năng (Normal)
+- Đổi đơn vị thời gian (giờ ↔ phút ↔ giây).
+- Đổi đơn vị tốc độ (m/s ↔ km/h).
+- Tính được v, t, s khi biết hai đại lượng còn lại.
+- Lập và đọc bảng liên hệ giữa thời gian – tốc độ – quãng đường.
+- Giải các bài toán thực tế đơn giản về chuyển động đều.
+
+#### 3. Vận dụng (Hard)
+- Giải bài toán nhiều giai đoạn chuyển động: đổi tốc độ, dừng nghỉ, ghép quãng đường.
+- Bài toán hai vật chuyển động cùng chiều/ ngược chiều: gặp nhau, đuổi kịp.
+- Tính sai số tuyệt đối và tương đối trong phép đo thời gian hoặc tốc độ (ở mức đơn giản).
+- Sử dụng biểu đồ (tốc độ – thời gian, quãng đường – thời gian) để phân tích quá trình chuyển động.
+
+---
+
+## T14 – Chuyển đổi đơn vị đo (Độ dài – Khối lượng – Thời gian – Thể tích)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Nắm hệ thống đơn vị đo độ dài (mm, cm, dm, m, dam, hm, km) và mối quan hệ giữa chúng.
+- Nắm hệ thống đơn vị đo khối lượng (mg, g, kg, tấn).
+- Nắm hệ thống đơn vị đo thời gian (giây, phút, giờ, ngày).
+- Nắm hệ thống đơn vị thể tích/dung tích (ml, lít, m³) và mối liên hệ cơ bản.
+- Hiểu rằng các đơn vị có thể quy đổi để đưa các đại lượng về cùng hệ trước khi tính toán.
+
+#### 2. Kỹ năng (Normal)
+- Thực hiện chính xác các phép đổi đơn vị trong cùng một hệ (ví dụ: m ↔ cm, g ↔ kg).
+- Đổi đơn vị thể tích trong các bài toán thực tế (ml ↔ lít, lít ↔ m³ ở mức cơ bản).
+- Đổi đơn vị thời gian phù hợp với bài toán (giờ ↔ phút, phút ↔ giây).
+
+#### 3. Vận dụng (Hard)
+- Kết hợp đổi nhiều loại đơn vị trong cùng một bài toán (ví dụ: đổi thời gian + đổi độ dài + đổi tốc độ).
+- Giải bài toán pha trộn, lưu lượng, mật độ có liên quan đến nhiều đơn vị đo khác nhau.
+- Lựa chọn đơn vị thích hợp để biểu diễn kết quả sao cho gọn và dễ hiểu.
+
+---
+
+## T15 – Thống kê mô tả & Xác suất cơ bản (Thống kê – Xác suất)
+
+### YÊU CẦU ĐẠT ĐƯỢC
+
+#### 1. Kiến thức (Normal)
+- Hiểu khái niệm dữ liệu và kết quả quan sát trong một phép thử.
+- Nắm bảng tần số, tần suất; hiểu ý nghĩa của tần số (số lần xuất hiện) và tần suất (tỉ lệ xuất hiện).
+- Nắm các tham số thống kê cơ bản:
+  - trung bình cộng,
+  - mốt (mode – giá trị xuất hiện nhiều nhất),
+  - (có thể thêm trung vị nếu chương trình yêu cầu).
+- Nhận biết và đọc được các loại biểu đồ thống kê cơ bản: biểu đồ cột, biểu đồ đoạn thẳng.
+- Hiểu khái niệm xác suất của một biến cố trong mô hình đều:
+  \[
+  P(A) = \frac{\text{số trường hợp thuận lợi}}{\text{số trường hợp có thể}}
+  \]
+- Biết rằng 0 ≤ P(A) ≤ 1, với:
+  - P = 0: biến cố không thể xảy ra,
+  - P = 1: biến cố chắc chắn.
+
+#### 2. Kỹ năng (Normal)
+- Lập bảng tần số, tần suất từ dữ liệu thô.
+- Tính trung bình cộng và mốt của một bộ dữ liệu.
+- Đọc, phân tích biểu đồ cột, đoạn thẳng: giá trị lớn – nhỏ, xu hướng, so sánh nhóm.
+- Tính xác suất đơn giản trong các tình huống đều nhau (tung đồng xu, gieo xúc xắc, rút thẻ…).
+
+#### 3. Vận dụng (Hard)
+- Phân tích các bộ dữ liệu phức hơn: nhiều nhóm, nhiều lớp số liệu; so sánh hai bộ dữ liệu.
+- Sử dụng trung vị (median) và hiểu ý nghĩa của nó trong mô tả dữ liệu (nếu có dạy).
+- Tính xác suất của các biến cố kết hợp (liên quan, đối, bổ sung) ở mức đơn giản.
+- Dựa trên tần suất thực nghiệm để ước lượng khả năng xảy ra của một biến cố trong tương lai.
