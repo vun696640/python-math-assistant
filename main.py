@@ -4,7 +4,6 @@ from typing import List, Dict
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from pypdf import PdfReader
@@ -21,7 +20,7 @@ app = FastAPI(title="Math AI Assistant")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # nếu sau này host riêng frontend thì sửa origin lại
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,13 +54,45 @@ class TestCase(BaseModel):
 class TestGenerationResponse(BaseModel):
     tests: List[TestCase]
 
+
+# ========================
+#  Fallback T1–T15 nếu không có file .md
+# ========================
+def default_standards() -> Dict[str, Standard]:
+    names = {
+        "T1": "Số & lũy thừa",
+        "T2": "Tỉ lệ & phần trăm",
+        "T3": "Góc & tam giác",
+        "T4": "Căn bậc hai",
+        "T5": "Phương trình bậc nhất",
+        "T6": "Hệ phương trình",
+        "T7": "Bất phương trình",
+        "T8": "Hàm số & đồ thị",
+        "T9": "Tam giác vuông & Pythagore",
+        "T10": "Đường tròn",
+        "T11": "Tiếp tuyến",
+        "T12": "Hình trụ, nón, cầu",
+        "T13": "Thống kê",
+        "T14": "Xác suất",
+        "T15": "Bài toán thực tế",
+    }
+    return {
+        code: Standard(
+            code=code,
+            name=name,
+            description=f"Chuẩn {code} – {name} (mô tả mặc định, dùng khi thiếu file chuan_dau_ra.md)."
+        )
+        for code, name in names.items()
+    }
+
+
 # ========================
 #  LOAD CHUẨN ĐẦU RA (T1–T15)
 # ========================
 def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     if not os.path.exists(path):
-        print(f"[WARN] Không tìm thấy file chuẩn đầu ra: {path}")
-        return {}
+        print(f"[WARN] Không tìm thấy file chuẩn đầu ra: {path} – dùng fallback mặc định.")
+        return default_standards()
 
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -104,10 +135,16 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
             description="\n".join(buf).strip()
         )
 
+    if not standards:
+        print("[WARN] File chuẩn đầu ra rỗng, dùng fallback mặc định.")
+        standards = default_standards()
+
     print(f"[INFO] Loaded {len(standards)} standards: {list(standards.keys())}")
     return standards
 
+
 STANDARDS = parse_chuan_dau_ra_md(CHUAN_DAU_RA_FILE)
+
 
 # ========================
 #  SIMPLE KEYWORD DETECTOR
@@ -118,9 +155,9 @@ def detect_standards_from_text(text: str) -> List[str]:
 
     KEYWORDS = {
         "T1": ["ucln", "bcnn", "lũy thừa", "số mũ", "luy thua"],
-        "T2": ["phần trăm", "%", "tỉ lệ", "giam gia", "tỷ lệ"],
+        "T2": ["phần trăm", "%", "tỉ lệ", "tỷ lệ", "giảm giá"],
         "T3": ["góc", "tam giác", "chứng minh", "tam giac"],
-        "T4": ["căn bậc hai", "sqrt", "căn bậc 2"],
+        "T4": ["căn bậc hai", "căn bậc 2", "sqrt"],
         "T5": ["phương trình bậc nhất", "pt bậc nhất"],
         "T6": ["hệ phương trình", "hpt"],
         "T7": ["bất phương trình"],
@@ -138,13 +175,12 @@ def detect_standards_from_text(text: str) -> List[str]:
         if any(k in t for k in keywords):
             found.append(code)
 
-    # Nếu không tìm được gì mà vẫn muốn phân loại, có thể default T1;
-    # hoặc để rỗng tùy bạn. Ở đây mình giữ nguyên default T1 như ban đầu:
     if not found:
         found.append("T1")
 
-    # Chỉ giữ chuẩn có thật trong file chuẩn đầu ra
+    # Chỉ giữ chuẩn có thật trong STANDARDS
     return [x for x in found if x in STANDARDS]
+
 
 # ========================
 #  API: HEALTH
@@ -153,8 +189,9 @@ def detect_standards_from_text(text: str) -> List[str]:
 def api_health():
     return {
         "status": "ok",
-        "standards_loaded": list(STANDARDS.keys()),
+        "standards_loaded": list(STANDARDS.keys())
     }
+
 
 # ========================
 #  API: CHAT
@@ -170,9 +207,10 @@ async def chat_message(req: ChatRequest):
     )
 
     system_prompt = (
-        "Bạn là trợ lý Toán lớp 9. "
-        "Giải thích rõ ràng, chi tiết, từng bước. "
-        "Bám sát chuẩn đầu ra T1–T15.\n\n"
+        "Bạn là trợ lý Toán lớp 9.\n"
+        "- Giải thích rõ ràng, chi tiết, từng bước.\n"
+        "- Bám sát chuẩn đầu ra T1–T15.\n"
+        "- Khi viết công thức, hãy dùng LaTeX trong cặp $$...$$ hoặc $...$ để frontend hiển thị bằng MathJax.\n\n"
         f"{standards_text}"
     )
 
@@ -182,13 +220,13 @@ async def chat_message(req: ChatRequest):
     try:
         completion = client.chat.completions.create(
             model="gpt-4.1-mini",
-            messages=messages,
+            messages=messages
         )
         reply = completion.choices[0].message.content.strip()
     except Exception as e:
         raise HTTPException(500, f"OpenAI error: {e}")
 
-    # detect standards từ message user cuối cùng
+    # detect standards
     last_user_msg = ""
     for m in reversed(req.messages):
         if m.role == "user":
@@ -199,11 +237,15 @@ async def chat_message(req: ChatRequest):
 
     return ChatResponse(reply=reply, standards=detected)
 
+
 # ========================
 #  API: TEST GENERATOR (AI TỰ SINH TEST)
 # ========================
 @app.get("/api/generate_tests", response_model=TestGenerationResponse)
 async def generate_tests():
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise HTTPException(500, "Thiếu OPENAI_API_KEY")
+
     standards_text = "\n".join(
         f"{s.code}: {s.name}\n{s.description}\n"
         for s in STANDARDS.values()
@@ -215,32 +257,31 @@ async def generate_tests():
     {standards_text}
 
     Yêu cầu:
-    - Không lặp lại ví dụ trong chuẩn đầu ra
+    - Không lặp lại ví dụ trong chuẩn đầu ra.
     - Mỗi test có dạng:
         {{
-            "input": "...",
-            "expected_standards": ["T..."]
+            "input": "Đề bài hoặc mô tả bài toán (có thể chứa LaTeX như x^2 + y^2 = 1).",
+            "expected_standards": ["T1", "T3"]
         }}
-    - Chỉ xuất JSON duy nhất với cấu trúc:
+    - "expected_standards" chỉ chứa các mã trong: {list(STANDARDS.keys())}
+    - Chỉ xuất duy nhất một JSON object có cấu trúc:
       {{
         "tests": [ ... ]
       }}
     """
 
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise HTTPException(500, "Thiếu OPENAI_API_KEY")
-
     try:
         completion = client.chat.completions.create(
             model="gpt-4.1",
             messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}  # ép trả JSON chuẩn
         )
         raw = completion.choices[0].message.content
         data = json.loads(raw)
-        # FastAPI sẽ tự validate theo TestGenerationResponse
         return data
     except Exception as e:
         raise HTTPException(500, f"OpenAI error in test generation: {e}")
+
 
 # ========================
 #  API: FILE PARSE
@@ -265,22 +306,16 @@ async def parse_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(400, f"Không đọc được file: {e}")
 
+
 # ========================
 #  ROOT: SERVE UI (index.html)
 # ========================
 @app.get("/", response_class=HTMLResponse)
 def root():
-    if not os.path.exists(INDEX_FILE):
-        # fallback: nếu chưa có UI, trả JSON cho Render biết server vẫn sống
-        return HTMLResponse(
-            '<h1>Math AI Assistant</h1><p>Không tìm thấy index.html</p>',
-            status_code=500,
-        )
-    with open(INDEX_FILE, "r", encoding="utf-8") as f:
-        return f.read()
-
-# ========================
-#  OPTIONAL: STATIC (nếu sau này cần thêm asset)
-# ========================
-# Ví dụ: app.mount("/web", StaticFiles(directory=BASE_DIR, html=True), name="static")
-# Hiện tại UI chỉ là 1 file index.html nên không bắt buộc.
+    if os.path.exists(INDEX_FILE):
+        with open(INDEX_FILE, "r", encoding="utf-8") as f:
+            return f.read()
+    return HTMLResponse(
+        "<h1>Math AI Assistant</h1><p>Không tìm thấy index.html</p>",
+        status_code=500
+    )
