@@ -59,8 +59,16 @@ class TestGenerationResponse(BaseModel):
     tests: List[TestCase]
 
 
-# ---- Bài kiểm tra đầu vào ----
-class PlacementQuestion(BaseModel):
+class ClassifyRequest(BaseModel):
+    text: str
+
+
+class ClassifyResponse(BaseModel):
+    standards: List[str]
+
+
+# Quiz models
+class QuizQuestion(BaseModel):
     id: int
     text: str
     options: List[str]
@@ -68,17 +76,8 @@ class PlacementQuestion(BaseModel):
     standards: List[str]
 
 
-class PlacementQuizResponse(BaseModel):
-    questions: List[PlacementQuestion]
-
-
-# ---- API classify offline (dùng cho dev nếu cần) ----
-class ClassifyRequest(BaseModel):
-    text: str
-
-
-class ClassifyResponse(BaseModel):
-    standards: List[str]
+class QuizResponse(BaseModel):
+    questions: List[QuizQuestion]
 
 
 # ========================
@@ -214,7 +213,7 @@ def api_health():
 
 
 # ========================
-#  API: CHAT – trợ lý dạy kèm AI
+#  API: CHAT – TRỢ LÝ GIẢI TOÁN
 # ========================
 @app.post("/chat/message", response_model=ChatResponse)
 async def chat_message(req: ChatRequest):
@@ -226,15 +225,17 @@ async def chat_message(req: ChatRequest):
     )
 
     system_prompt = (
-        "Bạn là Trợ lý Toán 9 AI cho học sinh.\n"
-        "- Giải chi tiết, từng bước, đúng chương trình Toán 9.\n"
-        "- Bám sát chuẩn đầu ra T1–T15.\n"
-        "- Sau khi giải xong, hãy nêu ngắn gọn: học sinh vừa ôn lại kiến thức nào (chuẩn T mấy), "
-        "và gợi ý 1–3 hoạt động học tập tiếp theo.\n"
-        "- Có thể gợi ý rằng bạn sẽ tạo quiz luyện tập nếu học sinh muốn.\n"
+        "Bạn là Trợ lý Toán 9 AI dành cho học sinh.\n"
+        "- Giải bài tập rõ ràng, từng bước, đúng kiến thức Toán 9.\n"
+        "- Bám sát bộ chuẩn T1–T15 do giáo viên cung cấp.\n"
         "- Dùng LaTeX với $...$ (inline) và $$...$$ (block) để hiển thị công thức.\n"
-        "- Trình bày gọn, không thừa dòng trắng.\n\n"
-        "Tóm tắt chuẩn đầu ra:\n"
+        "- Sau khi giải xong, hãy:\n"
+        "  • Nói ngắn gọn học sinh vừa ôn lại nội dung gì (có thể nhắc T1–T15 nếu phù hợp).\n"
+        "  • Gợi ý 1–3 hoạt động học tiếp theo (dạng bài nên luyện thêm, công thức cần nhớ...).\n"
+        "  • Có thể gợi ý rằng bạn có thể tạo quiz luyện tập nếu học sinh muốn.\n"
+        "- Trình bày gọn, không thừa dòng trắng, không nói kiểu ngây thơ.\n"
+        "\n"
+        "Dưới đây là tóm tắt các chuẩn T1–T15:\n"
         f"{standards_text}"
     )
 
@@ -262,7 +263,7 @@ async def chat_message(req: ChatRequest):
 
 
 # ========================
-#  API: CLASSIFY OFFLINE (dev)
+#  API: CLASSIFY OFFLINE (DEV)
 # ========================
 @app.post("/api/classify", response_model=ClassifyResponse)
 async def api_classify(req: ClassifyRequest):
@@ -271,58 +272,46 @@ async def api_classify(req: ClassifyRequest):
 
 
 # ========================
-#  API: BÀI KIỂM TRA ĐẦU VÀO (PLACEMENT QUIZ)
+#  QUIZ ĐẦU VÀO / ĐẦU RA (OFFLINE)
 # ========================
-@app.get("/api/placement_quiz", response_model=PlacementQuizResponse)
-async def get_placement_quiz():
-    """
-    Trả về 10 câu trắc nghiệm đầu vào.
-    Mỗi câu có 4 đáp án A–D, gắn với một vài chuẩn T1–T15.
-    Grading sẽ làm ở frontend.
-    """
-    questions: List[PlacementQuestion] = [
-        # 1 – T1
-        PlacementQuestion(
+def build_input_quiz() -> List[QuizQuestion]:
+    return [
+        QuizQuestion(
             id=1,
             text="Giá trị của 2^3 · 2^2 là:",
             options=["2^5", "2^6", "10", "32"],
-            correct_index=3,  # 32
+            correct_index=3,
             standards=["T1"],
         ),
-        # 2 – T2
-        PlacementQuestion(
+        QuizQuestion(
             id=2,
             text="Một cửa hàng giảm giá 20% cho chiếc áo giá 250 000 đồng. Giá sau giảm là:",
             options=["200 000 đồng", "225 000 đồng", "230 000 đồng", "240 000 đồng"],
             correct_index=1,
             standards=["T2"],
         ),
-        # 3 – T3
-        PlacementQuestion(
+        QuizQuestion(
             id=3,
             text="Trong tam giác, tổng số đo ba góc luôn bằng:",
             options=["90°", "120°", "180°", "360°"],
             correct_index=2,
             standards=["T3"],
         ),
-        # 4 – T4
-        PlacementQuestion(
+        QuizQuestion(
             id=4,
             text="Căn bậc hai số học của 81 là:",
             options=["±9", "9", "–9", "8"],
             correct_index=1,
             standards=["T4"],
         ),
-        # 5 – T5
-        PlacementQuestion(
+        QuizQuestion(
             id=5,
             text="Nghiệm của phương trình 2x – 5 = 9 là:",
             options=["x = 2", "x = 3", "x = 5", "x = 7"],
             correct_index=3,
             standards=["T5"],
         ),
-        # 6 – T6
-        PlacementQuestion(
+        QuizQuestion(
             id=6,
             text="Hệ nào sau đây là hệ phương trình bậc nhất hai ẩn?",
             options=[
@@ -334,16 +323,14 @@ async def get_placement_quiz():
             correct_index=1,
             standards=["T6"],
         ),
-        # 7 – T7
-        PlacementQuestion(
+        QuizQuestion(
             id=7,
             text="Bất phương trình 3x – 2 > 4 tương đương với:",
             options=["x > 2", "x > 3", "x > 4", "x > 6"],
             correct_index=0,
             standards=["T7"],
         ),
-        # 8 – T8
-        PlacementQuestion(
+        QuizQuestion(
             id=8,
             text="Đồ thị của hàm số y = 2x + 1 là:",
             options=[
@@ -355,8 +342,7 @@ async def get_placement_quiz():
             correct_index=3,
             standards=["T8"],
         ),
-        # 9 – T9
-        PlacementQuestion(
+        QuizQuestion(
             id=9,
             text="Trong tam giác vuông, định lý Pytago phát biểu:",
             options=[
@@ -368,8 +354,7 @@ async def get_placement_quiz():
             correct_index=1,
             standards=["T3", "T9"],
         ),
-        # 10 – T12, T15
-        PlacementQuestion(
+        QuizQuestion(
             id=10,
             text=(
                 "Một bồn nước hình trụ có bán kính đáy 0,5 m và chiều cao 1,2 m. "
@@ -381,15 +366,129 @@ async def get_placement_quiz():
         ),
     ]
 
-    # lọc lại standards chỉ lấy những mã tồn tại
+
+def build_output_quiz() -> List[QuizQuestion]:
+    return [
+        QuizQuestion(
+            id=1,
+            text="Kết quả của 5^2 · 5^(-1) là:",
+            options=["5", "25", "1", "1/5"],
+            correct_index=0,
+            standards=["T1"],
+        ),
+        QuizQuestion(
+            id=2,
+            text=(
+                "Một lớp học có 30 bạn, trong đó 40% là học sinh nữ. "
+                "Số học sinh nữ trong lớp là:"
+            ),
+            options=["10", "12", "14", "16"],
+            correct_index=1,
+            standards=["T2"],
+        ),
+        QuizQuestion(
+            id=3,
+            text="Trong tam giác ABC, nếu góc A = 60°, góc B = 50° thì góc C bằng:",
+            options=["60°", "70°", "80°", "90°"],
+            correct_index=2,
+            standards=["T3"],
+        ),
+        QuizQuestion(
+            id=4,
+            text="Biểu thức nào dưới đây bằng √(25/36)?",
+            options=["5/6", "6/5", "–5/6", "5/3"],
+            correct_index=0,
+            standards=["T4"],
+        ),
+        QuizQuestion(
+            id=5,
+            text="Phương trình nào sau đây có nghiệm x = −2?",
+            options=[
+                "2x + 1 = 0",
+                "3x – 2 = 0",
+                "x + 2 = 0",
+                "x – 2 = 0",
+            ],
+            correct_index=2,
+            standards=["T5"],
+        ),
+        QuizQuestion(
+            id=6,
+            text="Hệ phương trình nào có nghiệm (x, y) = (2, 1)?",
+            options=[
+                "x + y = 3; x – y = 1",
+                "x + y = 3; x + y = 4",
+                "2x + y = 3; x – y = 3",
+                "x – y = 2; x + y = 1",
+            ],
+            correct_index=0,
+            standards=["T6"],
+        ),
+        QuizQuestion(
+            id=7,
+            text="Tập nghiệm của bất phương trình x/2 ≥ 3 là:",
+            options=[
+                "x ≥ 3",
+                "x ≥ 6",
+                "x ≤ 6",
+                "x > 6",
+            ],
+            correct_index=1,
+            standards=["T7"],
+        ),
+        QuizQuestion(
+            id=8,
+            text="Hàm số nào sau đây có đồ thị là đường thẳng đi qua gốc tọa độ?",
+            options=[
+                "y = 2x + 1",
+                "y = -x + 3",
+                "y = 3x",
+                "y = 2x - 4",
+            ],
+            correct_index=2,
+            standards=["T8"],
+        ),
+        QuizQuestion(
+            id=9,
+            text=(
+                "Trong tam giác vuông ABC tại A, BC = 13, AC = 5. "
+                "Độ dài AB bằng:"
+            ),
+            options=["8", "10", "12", "18"],
+            correct_index=0,
+            standards=["T3", "T9"],
+        ),
+        QuizQuestion(
+            id=10,
+            text=(
+                "Một cốc nước hình trụ có bán kính đáy 3 cm, chiều cao 12 cm. "
+                "Thể tích gần đúng của cốc (π ≈ 3,14) là:"
+            ),
+            options=["339,1 cm³", "271,3 cm³", "452,2 cm³", "150,7 cm³"],
+            correct_index=0,
+            standards=["T12", "T15"],
+        ),
+    ]
+
+
+@app.get("/api/input_quiz", response_model=QuizResponse)
+async def api_input_quiz():
+    questions = build_input_quiz()
     for q in questions:
         q.standards = [s for s in q.standards if s in STANDARDS]
+    return QuizResponse(questions=questions)
 
-    return PlacementQuizResponse(questions=questions)
+
+@app.get("/api/output_quiz", response_model=QuizResponse)
+async def api_output_quiz():
+    questions = build_output_quiz()
+    for q in questions:
+        q.standards = [s for s in q.standards if s in STANDARDS]
+    return QuizResponse(questions=questions)
 
 
 # ========================
-#  API: FILE PARSE
+#  FILE PARSE
 # ========================
 @app.post("/file/parse")
 async def parse_file(file: UploadFile = File(...)):
