@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+  <script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$']]
+    },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
   <meta charset="UTF-8">
   <title>K9 Math AI Assistant – Chat</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -626,49 +638,62 @@
     }
 
     function renderMessages() {
-      const conv = getCurrentConversation();
-      messagesEl.innerHTML = "";
-      if (!conv.messages.length) {
-        const intro = document.createElement("div");
-        intro.style.color = "#9ca3af";
-        intro.style.fontSize = "13px";
-        intro.style.maxWidth = "480px";
-        intro.style.margin = "40px auto 0";
-        intro.style.textAlign = "center";
-        intro.innerHTML = "Chào bạn 👋<br>Hãy đặt câu hỏi Toán 9, tải file bài tập, hoặc nhờ mình phân tích lỗi sai theo chuẩn T1–T15.";
-        messagesEl.appendChild(intro);
-        return;
-      }
-      conv.messages.forEach(msg => {
-        const row = document.createElement("div");
-        row.className = "message-row " + msg.role;
+  const conv = getCurrentConversation();
+  messagesEl.innerHTML = "";
 
-        const wrapper = document.createElement("div");
-        const meta = document.createElement("div");
-        meta.className = "message-meta";
+  if (!conv.messages.length) {
+    const intro = document.createElement("div");
+    intro.style.color = "#9ca3af";
+    intro.style.fontSize = "13px";
+    intro.style.maxWidth = "480px";
+    intro.style.margin = "40px auto 0";
+    intro.style.textAlign = "center";
+    intro.innerHTML = "Chào bạn 👋<br>Hãy đặt câu hỏi Toán 9, tải file bài tập, hoặc nhờ mình phân tích lỗi sai theo chuẩn T1–T15.";
+    messagesEl.appendChild(intro);
 
-        const avatar = document.createElement("span");
-        avatar.className = "avatar " + msg.role;
-        avatar.textContent = msg.role === "assistant" ? "AI" : "You";
-
-        const metaText = document.createElement("span");
-        metaText.textContent = msg.role === "assistant" ? "Trợ lý Toán AI" : "Bạn";
-
-        meta.appendChild(avatar);
-        meta.appendChild(metaText);
-
-        const bubble = document.createElement("div");
-        bubble.className = "message-bubble";
-        bubble.textContent = msg.content;
-
-        wrapper.appendChild(meta);
-        wrapper.appendChild(bubble);
-        row.appendChild(wrapper);
-        messagesEl.appendChild(row);
-      });
-
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+    // Render lại MathJax cả khi chỉ có intro
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      window.MathJax.typesetPromise();
     }
+    return;
+  }
+
+  conv.messages.forEach(msg => {
+    const row = document.createElement("div");
+    row.className = "message-row " + msg.role;
+
+    const wrapper = document.createElement("div");
+    const meta = document.createElement("div");
+    meta.className = "message-meta";
+
+    const avatar = document.createElement("span");
+    avatar.className = "avatar " + msg.role;
+    avatar.textContent = msg.role === "assistant" ? "AI" : "You";
+
+    const metaText = document.createElement("span");
+    metaText.textContent = msg.role === "assistant" ? "Trợ lý Toán AI" : "Bạn";
+
+    meta.appendChild(avatar);
+    meta.appendChild(metaText);
+
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble";
+    // dùng textContent vẫn ok với MathJax, nó đọc text node
+    bubble.textContent = msg.content;
+
+    wrapper.appendChild(meta);
+    wrapper.appendChild(bubble);
+    row.appendChild(wrapper);
+    messagesEl.appendChild(row);
+  });
+
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  // 🔥 Quan trọng: gọi MathJax sau khi đã render xong message
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    window.MathJax.typesetPromise();
+  }
+}
 
     function updateHeaderTags() {
       const conv = getCurrentConversation();
