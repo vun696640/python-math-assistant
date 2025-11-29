@@ -546,8 +546,10 @@
   </div>
 
   <script>
-    // ======= CẤU HÌNH BACKEND (cùng domain) =======
-    const API_BASE = ""; // dùng đường dẫn tương đối: "/chat/message", "/file/parse"
+    // ======= CẤU HÌNH BACKEND (cùng domain Render) =======
+    // Nếu HTML được serve trực tiếp bởi FastAPI trên Render
+    // thì để API_BASE = "" là đúng.
+    const API_BASE = "";
 
     // ======= STATE FRONTEND =======
     let conversations = {};
@@ -974,3 +976,4 @@
   </script>
 </body>
 </html>
+
