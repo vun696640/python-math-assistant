@@ -253,4 +253,4 @@ async def parse_file(file: UploadFile = File(...)):
 
 # ====== SERVE FRONTEND (index.html) ======
 # Đảm bảo index.html nằm cùng thư mục với main.py
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
+app.mount("/web", StaticFiles(directory=".", html=True), name="static")
