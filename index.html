@@ -379,7 +379,7 @@
 
       <section class="input-bar">
         <div class="input-top">
-          <span>Tip: Bạn có thể tải file PDF/TXT bài tập, hệ thống sẽ đọc &amp; đưa vào đoạn chat.</span>
+          <span>Tip: Bạn có thể tải file PDF/TXT bài tập, hệ thống sẽ đọc &amp; phân tích tự động.</span>
           <span id="status-text"></span>
         </div>
         <div class="input-row">
@@ -403,10 +403,10 @@
 
   <script>
     // ======= CẤU HÌNH BACKEND =======
-    // Khi chạy local:
-    // const BASE_URL = "http://127.0.0.1:8000";
-    // Khi deploy Render: sửa thành URL service.
-    const BASE_URL = "http://127.0.0.1:8000";
+    // Backend cùng domain (FastAPI serve index.html):
+    const BASE_URL = window.location.origin;
+    // Nếu backend ở host khác, sửa thành:
+    // const BASE_URL = "https://ten-service-cua-ban.onrender.com";
 
     // ======= STATE FRONTEND =======
     let conversations = {};
@@ -568,7 +568,41 @@
       }
     }
 
-    // Upload file → gọi /file/parse → thêm message user
+    // Gửi lịch sử hội thoại hiện tại (không phụ thuộc ô input)
+    async function sendHistoryOnly() {
+      const conv = getCurrentConversation();
+      if (!conv.messages.length) return;
+      statusLine.textContent = "Đang phân tích…";
+      statusLine.classList.remove("error");
+      sendBtn.disabled = true;
+
+      try {
+        const payload = {
+          messages: conv.messages.map(m => ({ role: m.role, content: m.content }))
+        };
+        const res = await fetch(BASE_URL + "/chat/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        conv.messages.push({ role: "assistant", content: data.reply });
+        conv.standards = data.standards || [];
+        renderMessages();
+        updateHeaderTags();
+        renderChatList();
+        statusLine.textContent = "";
+      } catch (err) {
+        console.error(err);
+        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server hoặc BASE_URL.";
+        statusLine.classList.add("error");
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    // Upload file → gọi /file/parse → thêm message user → tự động gọi AI
     uploadBtn.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", async () => {
       const file = fileInput.files[0];
@@ -590,11 +624,12 @@
         const data = await res.json();
         const snippet = data.content.length > 600 ? data.content.slice(0, 600) + "\n[...đã cắt bớt...]" : data.content;
         const text = `Nội dung trích từ file "${data.filename}":\n\n` + snippet;
+
         conv.messages.push({ role: "user", content: text });
         renderMessages();
-        statusLine.textContent = "Đã đọc file, bạn có thể bấm gửi để AI phân tích.";
-        // Tự động gọi AI luôn:
-        await sendMessage();
+
+        // Auto gọi AI luôn
+        await sendHistoryOnly();
       } catch (err) {
         console.error(err);
         statusLine.textContent = "Không đọc được file. Kiểm tra /file/parse.";
