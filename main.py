@@ -1,5 +1,4 @@
 import os
-import json
 from typing import List, Dict
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -60,8 +59,30 @@ class TestGenerationResponse(BaseModel):
     tests: List[TestCase]
 
 
+# ---- Bài kiểm tra đầu vào ----
+class PlacementQuestion(BaseModel):
+    id: int
+    text: str
+    options: List[str]
+    correct_index: int  # 0 = A, 1 = B, ...
+    standards: List[str]
+
+
+class PlacementQuizResponse(BaseModel):
+    questions: List[PlacementQuestion]
+
+
+# ---- API classify offline (dùng cho dev nếu cần) ----
+class ClassifyRequest(BaseModel):
+    text: str
+
+
+class ClassifyResponse(BaseModel):
+    standards: List[str]
+
+
 # ========================
-#  FALLBACK T1–T15 (nếu không có file .md)
+#  FALLBACK T1–T15
 # ========================
 def default_standards() -> Dict[str, Standard]:
     names = {
@@ -76,7 +97,7 @@ def default_standards() -> Dict[str, Standard]:
         "T9": "Tam giác vuông & định lý Pythagore",
         "T10": "Đường tròn",
         "T11": "Tiếp tuyến",
-        "T12": "Hình trụ, hình nón, hình cầu",
+        "T12": "Hình trụ, nón, cầu",
         "T13": "Thống kê",
         "T14": "Xác suất",
         "T15": "Bài toán thực tế",
@@ -85,7 +106,7 @@ def default_standards() -> Dict[str, Standard]:
         code: Standard(
             code=code,
             name=name,
-            description=f"Chuẩn {code} – {name} (mô tả mặc định dùng khi thiếu file chuan_dau_ra.md).",
+            description=f"Chuẩn {code} – {name} (mặc định, dùng khi thiếu file chuan_dau_ra.md).",
         )
         for code, name in names.items()
     }
@@ -96,7 +117,9 @@ def default_standards() -> Dict[str, Standard]:
 # ========================
 def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     if not os.path.exists(path):
-        print(f"[WARN] Không tìm thấy file chuẩn đầu ra: {path} – dùng fallback mặc định.")
+        print(
+            f"[WARN] Không tìm thấy file chuẩn đầu ra: {path} – dùng fallback mặc định."
+        )
         return default_standards()
 
     with open(path, "r", encoding="utf-8") as f:
@@ -112,9 +135,7 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
         if s.startswith("## "):
             if code:
                 standards[code] = Standard(
-                    code=code,
-                    name=name,
-                    description="\n".join(buf).strip(),
+                    code=code, name=name, description="\n".join(buf).strip()
                 )
             after = s[3:].strip()
             if "–" in after:
@@ -132,9 +153,7 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
 
     if code:
         standards[code] = Standard(
-            code=code,
-            name=name,
-            description="\n".join(buf).strip(),
+            code=code, name=name, description="\n".join(buf).strip()
         )
 
     if not standards:
@@ -207,17 +226,15 @@ async def chat_message(req: ChatRequest):
     )
 
     system_prompt = (
-        "Bạn là Trợ lý Toán 9 AI dành cho học sinh (một gia sư AI chứ không chỉ là chatbot).\n"
-        "Nguyên tắc:\n"
-        "1) Giải chi tiết, từng bước, đúng chương trình Toán 9.\n"
-        "2) Bám sát chuẩn đầu ra T1–T15.\n"
-        "3) Sau khi giải xong, phải:\n"
-        "   - Tóm tắt ngắn gọn: Học sinh vừa ôn lại/đặt trọng tâm vào kiến thức gì.\n"
-        "   - Đề xuất 1–3 hoạt động học tập tiếp theo (vd: làm thêm dạng nào, nhắc lại công thức nào).\n"
-        "   - Gợi ý rằng bạn có thể tạo một quiz luyện tập nếu học sinh muốn.\n"
-        "4) Khi viết công thức, dùng LaTeX với $...$ cho inline và $$...$$ cho công thức đứng riêng.\n"
-        "5) Trình bày gọn gàng, không chèn quá nhiều dòng trống.\n\n"
-        "Dưới đây là mô tả tóm tắt các chuẩn đầu ra:\n\n"
+        "Bạn là Trợ lý Toán 9 AI cho học sinh.\n"
+        "- Giải chi tiết, từng bước, đúng chương trình Toán 9.\n"
+        "- Bám sát chuẩn đầu ra T1–T15.\n"
+        "- Sau khi giải xong, hãy nêu ngắn gọn: học sinh vừa ôn lại kiến thức nào (chuẩn T mấy), "
+        "và gợi ý 1–3 hoạt động học tập tiếp theo.\n"
+        "- Có thể gợi ý rằng bạn sẽ tạo quiz luyện tập nếu học sinh muốn.\n"
+        "- Dùng LaTeX với $...$ (inline) và $$...$$ (block) để hiển thị công thức.\n"
+        "- Trình bày gọn, không thừa dòng trắng.\n\n"
+        "Tóm tắt chuẩn đầu ra:\n"
         f"{standards_text}"
     )
 
@@ -245,74 +262,130 @@ async def chat_message(req: ChatRequest):
 
 
 # ========================
-#  API: GENERATE TESTS – TẠO BỘ TEST OFFLINE, KHÔNG GỌI OPENAI
+#  API: CLASSIFY OFFLINE (dev)
 # ========================
-@app.get("/api/generate_tests", response_model=TestGenerationResponse)
-async def generate_tests():
+@app.post("/api/classify", response_model=ClassifyResponse)
+async def api_classify(req: ClassifyRequest):
+    detected = detect_standards_from_text(req.text)
+    return ClassifyResponse(standards=detected)
+
+
+# ========================
+#  API: BÀI KIỂM TRA ĐẦU VÀO (PLACEMENT QUIZ)
+# ========================
+@app.get("/api/placement_quiz", response_model=PlacementQuizResponse)
+async def get_placement_quiz():
     """
-    Trả về 10 test case cố định để kiểm thử bộ phân loại T1–T15.
-    Không phụ thuộc OpenAI → không bao giờ lỗi 500.
+    Trả về 10 câu trắc nghiệm đầu vào.
+    Mỗi câu có 4 đáp án A–D, gắn với một vài chuẩn T1–T15.
+    Grading sẽ làm ở frontend.
     """
-    tests: List[TestCase] = [
-        # T1
-        TestCase(
-            input="Tính UCLN và BCNN của 18 và 24.",
-            expected_standards=["T1"],
+    questions: List[PlacementQuestion] = [
+        # 1 – T1
+        PlacementQuestion(
+            id=1,
+            text="Giá trị của 2^3 · 2^2 là:",
+            options=["2^5", "2^6", "10", "32"],
+            correct_index=3,  # 32
+            standards=["T1"],
         ),
-        # T2
-        TestCase(
-            input="Một cửa hàng giảm giá 20% cho một chiếc áo giá 250 000 đồng. Hỏi sau giảm giá, chiếc áo còn bao nhiêu tiền?",
-            expected_standards=["T2"],
+        # 2 – T2
+        PlacementQuestion(
+            id=2,
+            text="Một cửa hàng giảm giá 20% cho chiếc áo giá 250 000 đồng. Giá sau giảm là:",
+            options=["200 000 đồng", "225 000 đồng", "230 000 đồng", "240 000 đồng"],
+            correct_index=1,
+            standards=["T2"],
         ),
-        # T3
-        TestCase(
-            input="Trong tam giác ABC, biết tổng ba góc của tam giác bằng 180°. Hãy chứng minh điều đó.",
-            expected_standards=["T3"],
+        # 3 – T3
+        PlacementQuestion(
+            id=3,
+            text="Trong tam giác, tổng số đo ba góc luôn bằng:",
+            options=["90°", "120°", "180°", "360°"],
+            correct_index=2,
+            standards=["T3"],
         ),
-        # T4
-        TestCase(
-            input="Tính căn bậc hai của 49 và 81.",
-            expected_standards=["T4"],
+        # 4 – T4
+        PlacementQuestion(
+            id=4,
+            text="Căn bậc hai số học của 81 là:",
+            options=["±9", "9", "–9", "8"],
+            correct_index=1,
+            standards=["T4"],
         ),
-        # T5
-        TestCase(
-            input="Giải phương trình bậc nhất: 2x - 5 = 9.",
-            expected_standards=["T5"],
+        # 5 – T5
+        PlacementQuestion(
+            id=5,
+            text="Nghiệm của phương trình 2x – 5 = 9 là:",
+            options=["x = 2", "x = 3", "x = 5", "x = 7"],
+            correct_index=3,
+            standards=["T5"],
         ),
-        # T6
-        TestCase(
-            input="Giải hệ phương trình: x + y = 5, x - y = 1.",
-            expected_standards=["T6"],
+        # 6 – T6
+        PlacementQuestion(
+            id=6,
+            text="Hệ nào sau đây là hệ phương trình bậc nhất hai ẩn?",
+            options=[
+                "x^2 + y = 1; x + y^2 = 2",
+                "x + y = 3; 2x – y = 1",
+                "x^2 + y^2 = 4; xy = 1",
+                "x – y^2 = 0; x + y = 1",
+            ],
+            correct_index=1,
+            standards=["T6"],
         ),
-        # T7
-        TestCase(
-            input="Giải bất phương trình: 3x - 2 > 4.",
-            expected_standards=["T7"],
+        # 7 – T7
+        PlacementQuestion(
+            id=7,
+            text="Bất phương trình 3x – 2 > 4 tương đương với:",
+            options=["x > 2", "x > 3", "x > 4", "x > 6"],
+            correct_index=0,
+            standards=["T7"],
         ),
-        # T8
-        TestCase(
-            input="Cho hàm số y = 2x + 1. Hãy vẽ đồ thị hàm số này trên hệ trục tọa độ.",
-            expected_standards=["T8"],
+        # 8 – T8
+        PlacementQuestion(
+            id=8,
+            text="Đồ thị của hàm số y = 2x + 1 là:",
+            options=[
+                "Một đoạn thẳng",
+                "Một đường tròn",
+                "Một parabol",
+                "Một đường thẳng",
+            ],
+            correct_index=3,
+            standards=["T8"],
         ),
-        # T9 + T3
-        TestCase(
-            input="Trong tam giác vuông ABC tại A, hãy áp dụng định lý Pytago để tính độ dài cạnh còn lại.",
-            expected_standards=["T3", "T9"],
+        # 9 – T9
+        PlacementQuestion(
+            id=9,
+            text="Trong tam giác vuông, định lý Pytago phát biểu:",
+            options=[
+                "Hai cạnh góc vuông có tổng bằng cạnh huyền",
+                "Bình phương cạnh huyền bằng tổng bình phương hai cạnh góc vuông",
+                "Bình phương cạnh huyền bằng hiệu bình phương hai cạnh góc vuông",
+                "Chu vi tam giác vuông luôn bằng 180°",
+            ],
+            correct_index=1,
+            standards=["T3", "T9"],
         ),
-        # T15 (bài toán thực tế + phần trăm)
-        TestCase(
-            input="Một bồn nước hình trụ được dùng trong thực tế để chứa nước cho gia đình. Bồn có bán kính đáy 0,6 m và chiều cao 1,5 m. Tính thể tích bồn và cho biết nếu dùng hết 70% lượng nước trong bồn thì còn lại bao nhiêu mét khối nước.",
-            expected_standards=["T12", "T2", "T15"],
+        # 10 – T12, T15
+        PlacementQuestion(
+            id=10,
+            text=(
+                "Một bồn nước hình trụ có bán kính đáy 0,5 m và chiều cao 1,2 m. "
+                "Thể tích gần đúng của bồn (làm tròn 1 chữ số thập phân, π ≈ 3,14) là:"
+            ),
+            options=["0,9 m³", "0,8 m³", "1,0 m³", "3,1 m³"],
+            correct_index=0,
+            standards=["T12", "T15"],
         ),
     ]
 
-    # Đảm bảo chỉ dùng những mã có trong STANDARDS (phòng khi file chuẩn đầu ra bị sửa)
-    filtered_tests: List[TestCase] = []
-    for t in tests:
-        valid = [c for c in t.expected_standards if c in STANDARDS]
-        filtered_tests.append(TestCase(input=t.input, expected_standards=valid))
+    # lọc lại standards chỉ lấy những mã tồn tại
+    for q in questions:
+        q.standards = [s for s in q.standards if s in STANDARDS]
 
-    return TestGenerationResponse(tests=filtered_tests)
+    return PlacementQuizResponse(questions=questions)
 
 
 # ========================
