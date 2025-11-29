@@ -144,7 +144,7 @@ class ChatResponse(BaseModel):
 def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     """
     Parse file Markdown 'chuan_dau_ra' thành dict { 'T1': Standard(...), ... }.
-    Định dạng mong đợi:
+    Định dạng mong đợi (giống file trên GitHub):
         ## T1 – Số và Lũy Thừa (Đại số)
         ...
         ## T2 – ...
@@ -163,29 +163,37 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     for line in lines:
         s = line.strip()
 
-        # Bắt đầu chuẩn mới: "## T1 – ..." hoặc "## T10 – ..."
-        if s.startswith("## T") and len(s) > 3 and s[3].isdigit():
-            # Lưu chuẩn cũ
-            if current_code:
-                standards[current_code] = Standard(
-                    code=current_code,
-                    name=current_name,
-                    description="\n".join(current_text).strip()
-                )
-
-            after = s[3:]                        # "1 – Số và Lũy Thừa..."
-            num_part = after.split("–", 1)[0]    # "1 " hoặc "10 "
-            num_str = num_part.strip().split()[0]
-            current_code = "T" + num_str         # "T1", "T10"
-
-            if "–" in s:
-                current_name = s.split("–", 1)[1].strip()
+        # Bắt đầu chuẩn mới: dòng dạng "## T1 – ..." (có thể có/dư khoảng trắng)
+        if s.startswith("## "):
+            after = s[3:].strip()   # ví dụ "T1 – Số và Lũy Thừa..."
+            if not after.upper().startswith("T"):
+                # ví dụ "# Chuẩn đầu ra Toán 9..." sẽ bị bỏ qua
+                # hoặc "## YÊU CẦU ĐẠT ĐƯỢC" cũng bỏ
+                pass
             else:
-                current_name = current_code
+                # Lưu chuẩn cũ nếu có
+                if current_code:
+                    standards[current_code] = Standard(
+                        code=current_code,
+                        name=current_name,
+                        description="\n".join(current_text).strip()
+                    )
 
-            current_text = []
-            continue
+                # Lấy code: "T1" hoặc "T10"
+                head = after.split("–", 1)[0].strip()   # "T1" hoặc "T10 ..."
+                code = head.split()[0]                  # "T1"
+                current_code = code
 
+                # Lấy tên chuẩn (sau dấu –)
+                if "–" in after:
+                    current_name = after.split("–", 1)[1].strip()
+                else:
+                    current_name = current_code
+
+                current_text = []
+                continue
+
+        # Nếu đang ở trong 1 chuẩn, gom text mô tả
         if current_code:
             current_text.append(line.rstrip())
 
@@ -198,7 +206,6 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
         )
 
     return standards
-
 
 STANDARDS: Dict[str, Standard] = parse_chuan_dau_ra_md(CHUAN_DAU_RA_FILE)
 
@@ -232,13 +239,18 @@ def guess_standards_from_text(text: str) -> List[str]:
 # ROOT
 # ============================================================
 
-@app.get("/")
+@app.get("/api/health")
 def root():
     return {
         "message": "Math AI Assistant is running",
         "standards_loaded": list(STANDARDS.keys()),
         "note": "Không lưu thông tin cá nhân hay bài làm trên server. Câu hỏi sinh động theo từng request.",
     }
+    
+from fastapi.staticfiles import StaticFiles
+
+# Serve index.html và các file tĩnh ở thư mục hiện tại (cùng chỗ với main.py)
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 
 # ============================================================
