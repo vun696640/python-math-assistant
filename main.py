@@ -49,7 +49,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = OpenAI()
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # ========================
 #  DATA MODELS
@@ -290,7 +290,7 @@ async def chat_message(req: ChatRequest):
 
     try:
         completion = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
             messages=messages,
         )
         reply = completion.choices[0].message.content.strip()
@@ -379,7 +379,7 @@ Trả về *DUY NHẤT* một JSON hợp lệ theo mẫu:
 """
 
     completion = client.chat.completions.create(
-        model="gpt-4.1-mini",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
