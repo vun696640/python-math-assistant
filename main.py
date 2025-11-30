@@ -1,6 +1,5 @@
 import os
 import json
-import random
 from typing import List, Dict
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -35,7 +34,7 @@ INDEX_FILE = os.path.join(BASE_DIR, "index.html")
 
 app = FastAPI(title="K9 Math AI Assistant")
 
-# Serve static (jsPDF/pdfMake/font, …)
+# Serve static (js/pdf/font, …)
 static_dir = os.path.join(BASE_DIR, "static")
 if os.path.isdir(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -49,6 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# OpenAI client (SDK mới)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # ========================
@@ -256,7 +256,7 @@ def api_health():
 
 
 # ========================
-#  CHAT – GIẢI TOÁN (luôn trả 200, không ném 500)
+#  CHAT – GIẢI TOÁN (luôn trả 200, không ném 500 ra ngoài)
 # ========================
 @app.post("/chat/message", response_model=ChatResponse)
 async def chat_message(req: ChatRequest):
@@ -281,7 +281,6 @@ async def chat_message(req: ChatRequest):
     messages = [{"role": "system", "content": system_prompt}]
     messages += [{"role": m.role, "content": m.content} for m in req.messages]
 
-    # lấy msg user cuối để detect chuẩn
     last_user_msg = ""
     for m in reversed(req.messages):
         if m.role == "user":
@@ -295,7 +294,7 @@ async def chat_message(req: ChatRequest):
         )
         reply = completion.choices[0].message.content.strip()
     except Exception as e:
-        # Bất kể lỗi gì (key, network, model, ...) vẫn trả 200 với reply là thông báo lỗi
+        # Không ném 500 ra ngoài, trả luôn text lỗi
         reply = (
             "Hiện tại server gặp lỗi khi gọi mô hình AI nên mình tạm thời "
             "không giải được bài toán này.\n\n"
