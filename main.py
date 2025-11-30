@@ -35,12 +35,12 @@ INDEX_FILE = os.path.join(BASE_DIR, "index.html")
 
 app = FastAPI(title="K9 Math AI Assistant")
 
-# Serve static (jsPDF, font, …)
+# Serve static (jsPDF/pdfMake/font, …)
 static_dir = os.path.join(BASE_DIR, "static")
 if os.path.isdir(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# CORS – cú pháp ĐÚNG: truyền class + kwargs, không gọi CORSMiddleware(...)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -256,13 +256,10 @@ def api_health():
 
 
 # ========================
-#  CHAT – GIẢI TOÁN
+#  CHAT – GIẢI TOÁN (luôn trả 200, không ném 500)
 # ========================
 @app.post("/chat/message", response_model=ChatResponse)
 async def chat_message(req: ChatRequest):
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise HTTPException(500, "Thiếu OPENAI_API_KEY trên server.")
-
     standards_text = "\n".join(
         f"{s.code}: {s.name}\n{s.description}\n" for s in STANDARDS.values()
     )
@@ -284,6 +281,13 @@ async def chat_message(req: ChatRequest):
     messages = [{"role": "system", "content": system_prompt}]
     messages += [{"role": m.role, "content": m.content} for m in req.messages]
 
+    # lấy msg user cuối để detect chuẩn
+    last_user_msg = ""
+    for m in reversed(req.messages):
+        if m.role == "user":
+            last_user_msg = m.content
+            break
+
     try:
         completion = client.chat.completions.create(
             model="gpt-4.1-mini",
@@ -291,13 +295,14 @@ async def chat_message(req: ChatRequest):
         )
         reply = completion.choices[0].message.content.strip()
     except Exception as e:
-        raise HTTPException(500, f"OpenAI error: {e}")
-
-    last_user_msg = ""
-    for m in reversed(req.messages):
-        if m.role == "user":
-            last_user_msg = m.content
-            break
+        # Bất kể lỗi gì (key, network, model, ...) vẫn trả 200 với reply là thông báo lỗi
+        reply = (
+            "Hiện tại server gặp lỗi khi gọi mô hình AI nên mình tạm thời "
+            "không giải được bài toán này.\n\n"
+            "Người quản trị có thể kiểm tra lại cấu hình OPENAI_API_KEY, "
+            "model, hoặc kết nối mạng của server.\n"
+            f"(Chi tiết kỹ thuật: {e})"
+        )
 
     detected = detect_standards_from_text(last_user_msg)
     return ChatResponse(reply=reply, standards=detected)
