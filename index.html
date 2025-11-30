@@ -409,14 +409,10 @@
     }
   </style>
 
-  <!-- jsPDF UMD -->
-  <script src="/static/js/jspdf.umd.min.js"></script>
-  <script>
-    // cho font file segoeuithis-normal.js dùng jsPDF global
-    if (window.jspdf && window.jspdf.jsPDF) {
-      window.jsPDF = window.jspdf.jsPDF;
-    }
-  </script>
+    <!-- pdfMake: thư viện xuất PDF có dấu tiếng Việt -->
+  <script src="/static/js/pdfmake.min.js"></script>
+  <script src="/static/js/vfs_fonts.js"></script>
+
   <script src="/static/js/segoeuithis-normal.js"></script>
 
   <!-- MathJax để render công thức -->
@@ -1052,107 +1048,134 @@
       renderCurrentQuestion();
     }
 
-    function exportPdfReport() {
+        function exportPdfReport() {
       if (!lastTestResults) return;
-      if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("Không tải được thư viện jsPDF.");
-        return;
-      }
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
 
-      try {
-        doc.setFont("segoeuithis", "normal");
-      } catch (e) {
-        doc.setFont("helvetica", "normal");
+      if (!window.pdfMake || !window.pdfMake.createPdf) {
+        alert("Không tải được thư viện pdfMake để xuất PDF.");
+        return;
       }
 
       const s = lastTestResults;
       const modeLabel =
-        s.mode === "input" ? "đầu vào" :
-        s.mode === "output" ? "đầu ra" : "quiz";
+        s.mode === "input"
+          ? "đầu vào"
+          : s.mode === "output"
+          ? "đầu ra"
+          : "quiz luyện tập";
 
-      let y = 40;
-      const maxWidth = 500;
-
-      doc.setFontSize(14);
-      doc.text(`Báo cáo & kế hoạch học theo quý – Bài ${modeLabel} T1–T15 – K9 Math AI`, 40, y);
-
-      y += 20;
-      doc.setFontSize(11);
-      doc.text("Thời gian: " + new Date().toLocaleString("vi-VN"), 40, y);
-
-      // 1. Tổng quan
-      y += 24;
-      doc.setFontSize(11);
-      doc.text("1. Đánh giá tổng quan", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-      const overallLines = doc.splitTextToSize(
-        overallText(s.totalQuestions, s.correctCount),
-        maxWidth
+      const overall = overallText(s.totalQuestions, s.correctCount);
+      const present = buildPresentationSummary(
+        s.styleStats,
+        s.totalQuestions
       );
-      doc.text(overallLines, 40, y);
-      y += overallLines.length * 12;
-
-      // 1b. Thói quen trình bày
-      y += 12;
-      doc.setFontSize(11);
-      doc.text("1.b. Nhận xét thói quen trình bày", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-      const presentLines = doc.splitTextToSize(
-        buildPresentationSummary(s.styleStats, s.totalQuestions),
-        maxWidth
-      );
-      doc.text(presentLines, 40, y);
-      y += presentLines.length * 12;
 
       // 2. Theo từng chuẩn
-      y += 16;
-      doc.setFontSize(11);
-      doc.text("2. Đánh giá theo từng chuẩn T1–T15", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-
+      const standardLines = [];
       const codes = Object.keys(s.perStandard || {}).sort();
       if (!codes.length) {
-        doc.text("Chưa có dữ liệu đủ rõ để phân tích theo chuẩn.", 40, y);
-        y += 14;
+        standardLines.push(
+          "Chưa có dữ liệu đủ rõ để phân tích theo từng chuẩn."
+        );
       } else {
-        codes.forEach(code => {
+        codes.forEach((code) => {
           const info = s.perStandard[code];
-          const line = `${code} – ${(STANDARD_LABELS[code] || "Chuẩn " + code)}: ${describeStandardLevel(info.total, info.correct)}`;
-          const wrapped = doc.splitTextToSize(line, maxWidth);
-          if (y + wrapped.length * 12 > 770) {
-            doc.addPage();
-            y = 40;
-          }
-          doc.text(wrapped, 40, y);
-          y += wrapped.length * 12;
+          const line =
+            `${code} – ${
+              STANDARD_LABELS[code] || "Chuẩn " + code
+            }: ` + describeStandardLevel(info.total, info.correct);
+          standardLines.push(line);
         });
       }
 
       // 3. Kế hoạch 3 tháng
-      y += 16;
-      doc.setFontSize(11);
-      doc.text("3. Kế hoạch học theo quý (3 tháng, 12 tuần)", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-
       const scheduleLines = buildQuarterPlan(s.perStandard || {});
-      scheduleLines.forEach(line => {
-        const wrapped = doc.splitTextToSize(line, maxWidth);
-        if (y + wrapped.length * 12 > 770) {
-          doc.addPage();
-          y = 40;
-        }
-        doc.text(wrapped, 40, y);
-        y += wrapped.length * 12;
+
+      // ==== Build nội dung pdfMake ====
+      const content = [];
+
+      content.push({
+        text: `Báo cáo & kế hoạch học theo quý – Bài ${modeLabel} T1–T15 – K9 Math AI Assistant`,
+        style: "header",
       });
 
-      doc.save(`Bao_cao_${modeLabel.replace(" ", "_")}_T1-T15.pdf`);
+      content.push({
+        text: `Thời gian: ${new Date().toLocaleString("vi-VN")}`,
+        margin: [0, 4, 0, 10],
+        fontSize: 10,
+      });
+
+      // 1. Tổng quan
+      content.push({ text: "1. Đánh giá tổng quan", style: "subheader" });
+      content.push({
+        text: overall,
+        margin: [0, 2, 0, 10],
+        fontSize: 10,
+      });
+
+      // 1b. Trình bày
+      content.push({
+        text: "1.b. Nhận xét về thói quen trình bày",
+        style: "subheader",
+      });
+      content.push({
+        text: present,
+        margin: [0, 2, 0, 10],
+        fontSize: 10,
+      });
+
+      // 2. Theo chuẩn
+      content.push({
+        text: "2. Đánh giá theo từng nhóm chuẩn T1–T15",
+        style: "subheader",
+      });
+      standardLines.forEach((line) => {
+        content.push({
+          text: line,
+          margin: [0, 1, 0, 2],
+          fontSize: 10,
+        });
+      });
+
+      // 3. Kế hoạch
+      content.push({
+        text: "3. Kế hoạch học theo quý (3 tháng, 12 tuần)",
+        style: "subheader",
+        margin: [0, 8, 0, 2],
+      });
+      scheduleLines.forEach((line) => {
+        content.push({
+          text: line,
+          margin: [0, 1, 0, 2],
+          fontSize: 10,
+        });
+      });
+
+      const docDefinition = {
+        content,
+        defaultStyle: {
+          font: "Roboto", // từ vfs_fonts.js – hỗ trợ Unicode
+          fontSize: 11,
+        },
+        styles: {
+          header: {
+            fontSize: 14,
+            bold: true,
+            margin: [0, 0, 0, 6],
+          },
+          subheader: {
+            fontSize: 12,
+            bold: true,
+            margin: [0, 6, 0, 3],
+          },
+        },
+      };
+
+      pdfMake
+        .createPdf(docDefinition)
+        .download(`Bao_cao_${modeLabel.replace(" ", "_")}_T1-T15.pdf`);
     }
+
 
     btnRunInput.addEventListener("click", () => openTestPanel("input"));
     btnRunOutput.addEventListener("click", () => openTestPanel("output"));
