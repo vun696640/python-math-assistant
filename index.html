@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>K9 Math AI Assistant – Chat</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <style>
     :root {
       --bg-main: #050816;
@@ -31,9 +32,10 @@
       width: 100%;
       height: 100%;
     }
-    /* Sidebar */
+
+    /* Sidebar (để cho vibe xịn thôi) */
     .sidebar {
-      width: 260px;
+      width: 240px;
       background: #020617;
       border-right: 1px solid #111827;
       padding: 12px 10px;
@@ -42,9 +44,6 @@
       gap: 10px;
     }
     .sidebar-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       padding: 4px 6px 0;
     }
     .logo {
@@ -56,62 +55,9 @@
       font-size: 11px;
       color: var(--text-soft);
     }
-    .new-chat-btn {
-      margin-top: 8px;
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid #374151;
-      background: linear-gradient(to right, #111827, #020617);
-      color: #e5e7eb;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-    }
-    .new-chat-btn span.icon {
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-    }
-    .new-chat-btn:hover {
-      border-color: var(--accent);
-    }
-    .chat-list {
-      flex: 1;
-      margin-top: 4px;
-      overflow-y: auto;
-      padding-right: 2px;
-    }
-    .chat-item {
-      padding: 8px 10px;
-      border-radius: 8px;
-      margin-bottom: 4px;
-      font-size: 13px;
-      color: var(--text-soft);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      cursor: pointer;
-    }
-    .chat-item.active {
-      background: linear-gradient(to right, rgba(16,185,129,0.18), rgba(15,23,42,0.9));
-      color: #f9fafb;
-    }
-    .chat-item-title {
-      font-weight: 500;
-    }
-    .chat-item-sub {
-      font-size: 11px;
-    }
     .sidebar-footer {
-      padding: 8px 6px;
+      margin-top: auto;
+      padding-top: 8px;
       border-top: 1px solid #111827;
       font-size: 11px;
       color: #6b7280;
@@ -188,13 +134,8 @@
     .header-btn span.icon {
       font-size: 12px;
     }
-    .header-btn:hover {
-      border-color: var(--accent);
-    }
-    .header-btn:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
+    .header-btn:hover { border-color: var(--accent); }
+    .header-btn:disabled { opacity: 0.5; cursor: default; }
     .tag-list {
       display: flex;
       flex-wrap: wrap;
@@ -222,7 +163,6 @@
     }
     .message-row.assistant { justify-content: flex-start; }
     .message-row.user { justify-content: flex-end; }
-
     .message-bubble {
       max-width: 70%;
       padding: 10px 12px;
@@ -306,9 +246,7 @@
       min-height: 40px;
       outline: none;
     }
-    .input-box::placeholder {
-      color: #6b7280;
-    }
+    .input-box::placeholder { color: #6b7280; }
     .input-actions-right {
       position: absolute;
       right: 6px;
@@ -348,22 +286,15 @@
       cursor: pointer;
       font-size: 16px;
     }
-    .send-btn:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
+    .send-btn:disabled { opacity: 0.4; cursor: default; }
     .status-line {
       font-size: 11px;
       color: var(--text-soft);
       min-height: 14px;
     }
-    .status-line.error {
-      color: #fca5a5;
-    }
+    .status-line.error { color: #fca5a5; }
 
-    #file-input {
-      display: none;
-    }
+    #file-input { display: none; }
 
     /* Test panel overlay */
     .test-panel {
@@ -473,26 +404,22 @@
     }
 
     @media (max-width: 800px) {
-      .sidebar {
-        display: none;
-      }
-      .header-right {
-        max-width: 60%;
-      }
+      .sidebar { display: none; }
+      .header-right { max-width: 60%; }
     }
   </style>
 
-  <!-- jsPDF dùng để xuất PDF -->
+  <!-- jsPDF UMD -->
   <script src="/static/js/jspdf.umd.min.js"></script>
   <script>
-    // Tạo global jsPDF cho file font segoeuithis-normal.js (dùng jsPDF.API)
+    // cho font file segoeuithis-normal.js dùng jsPDF global
     if (window.jspdf && window.jspdf.jsPDF) {
       window.jsPDF = window.jspdf.jsPDF;
     }
   </script>
   <script src="/static/js/segoeuithis-normal.js"></script>
 
-  <!-- MathJax -->
+  <!-- MathJax để render công thức -->
   <script>
     window.MathJax = {
       tex: {
@@ -506,33 +433,28 @@
 </head>
 <body>
   <div class="layout">
-    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div>
-          <div class="logo">K9 Math AI</div>
-          <div class="subtitle">Trợ lý Toán 9 – AI for Good</div>
-        </div>
+        <div class="logo">K9 Math AI</div>
+        <div class="subtitle">Trợ lý Toán 9 – AI for Good</div>
       </div>
-      <button class="new-chat-btn" id="btn-new-chat">
-        <span class="icon">+</span>
-        <span>Cuộc trò chuyện mới</span>
-      </button>
-
-      <div class="chat-list" id="chat-list"></div>
 
       <div class="sidebar-footer">
         <div>Chuẩn đầu ra (T1–T15)</div>
         <div style="margin-top:4px;">
-          <div class="badge"><span class="dot"></span>T1 – Số &amp; lũy thừa</div>
-          <div class="badge"><span class="dot"></span>T2 – Tỉ lệ &amp; phần trăm</div>
-          <div class="badge"><span class="dot"></span>T3 – Góc &amp; tam giác</div>
-          <!-- Có thể bổ sung thêm T4..T15 sau -->
+          <div class="badge">
+            <span class="dot"></span>T1 – Số &amp; lũy thừa
+          </div>
+          <div class="badge">
+            <span class="dot"></span>T2 – Tỉ lệ &amp; phần trăm
+          </div>
+          <div class="badge">
+            <span class="dot"></span>T3 – Góc &amp; tam giác
+          </div>
         </div>
       </div>
     </aside>
 
-    <!-- MAIN -->
     <main class="main">
       <header class="main-header">
         <div class="main-header-title">
@@ -543,43 +465,35 @@
         </div>
         <div class="header-right">
           <div class="header-actions">
-            <button class="header-btn" id="btn-run-tests">
+            <button class="header-btn" id="btn-run-input">
               <span class="icon">🧪</span>
-              <span>Làm bài kiểm tra đầu vào / đầu ra</span>
+              <span>Bài kiểm tra đầu vào</span>
             </button>
-
-            <button class="header-btn" id="btn-create-quiz">
-              <span class="icon">❓</span>
-              <span>Quiz luyện tập</span>
+            <button class="header-btn" id="btn-run-output">
+              <span class="icon">🧪</span>
+              <span>Bài kiểm tra đầu ra</span>
             </button>
-
             <button class="header-btn" id="btn-export-pdf-global" disabled>
               <span class="icon">📄</span>
               <span>Xuất PDF báo cáo</span>
             </button>
           </div>
-          <div class="tag-list" id="header-tags">
-            <!-- Dynamic tags -->
-          </div>
+          <div class="tag-list" id="header-tags"></div>
         </div>
       </header>
 
       <section class="messages" id="messages"></section>
 
-      <!-- TEST PANEL OVERLAY -->
+      <!-- TEST PANEL -->
       <section class="test-panel" id="test-panel">
         <div class="test-panel-inner">
           <div class="test-panel-header">
             <div class="test-panel-title-group">
-              <div class="test-panel-header-title" id="test-panel-title">
-                Bài kiểm tra đầu vào T1–T15
-              </div>
+              <div id="test-panel-title">Bài kiểm tra</div>
               <div class="test-summary" id="test-summary"></div>
             </div>
             <div class="test-panel-switch">
-              <button class="header-btn" id="btn-switch-input">Đầu vào</button>
-              <button class="header-btn" id="btn-switch-output">Đầu ra</button>
-              <button class="header-btn" id="btn-close-test">✕</button>
+              <button class="header-btn" id="btn-close-test">✕ Đóng</button>
             </div>
           </div>
 
@@ -589,29 +503,23 @@
             <div class="test-standards" id="test-standards"></div>
             <div class="test-options" id="test-options"></div>
             <div class="test-explain-block">
-              <label for="test-explanation">Trình bày lời giải / cách nghĩ của bạn:</label>
-              <textarea id="test-explanation"></textarea>
+              <label for="test-explain">Trình bày cách nghĩ / lời giải:</label>
+              <textarea id="test-explain"></textarea>
             </div>
             <div class="test-feedback" id="test-feedback"></div>
           </div>
 
           <div class="test-panel-footer">
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button class="header-btn" id="btn-prev-question">
-                ◀ Trước
-              </button>
-              <button class="header-btn" id="btn-next-question">
-                Tiếp ▶
-              </button>
+              <button class="header-btn" id="btn-prev-q">◀ Trước</button>
+              <button class="header-btn" id="btn-next-q">Tiếp ▶</button>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <button class="header-btn" id="btn-grade-test">
-                <span class="icon">✔</span>
-                <span>Chấm bài &amp; gợi ý kế hoạch</span>
+                <span class="icon">✔</span>Chấm bài &amp; gợi ý kế hoạch
               </button>
               <button class="header-btn" id="btn-export-pdf" disabled>
-                <span class="icon">📄</span>
-                <span>Xuất PDF báo cáo</span>
+                <span class="icon">📄</span>Xuất PDF báo cáo
               </button>
             </div>
           </div>
@@ -620,23 +528,19 @@
 
       <section class="input-bar">
         <div class="input-top">
-          <span>Tip: Bạn có thể tải file PDF/TXT bài tập, hệ thống sẽ đọc &amp; phân tích tự động.</span>
+          <span>Tip: bạn có thể tải file PDF/TXT bài tập, hệ thống sẽ đọc &amp; phân tích.</span>
           <span id="status-text"></span>
         </div>
         <div class="input-row">
           <div class="input-box-wrap">
             <textarea id="chat-input" class="input-box" rows="1"
-                      placeholder="Đặt câu hỏi Toán 9 hoặc dán đề bài ở đây..."></textarea>
+              placeholder="Đặt câu hỏi Toán 9 hoặc dán đề bài ở đây..."></textarea>
             <div class="input-actions-right">
-              <button class="icon-btn" id="btn-upload" title="Tải file bài tập">
-                📎
-              </button>
+              <button class="icon-btn" id="btn-upload" title="Tải file bài tập">📎</button>
             </div>
           </div>
-          <button class="send-btn" id="btn-send" title="Gửi">
-            ➤
-          </button>
-          <input type="file" id="file-input" accept=".txt,.pdf,.md,.json">
+          <button class="send-btn" id="btn-send">➤</button>
+          <input type="file" id="file-input" accept=".txt,.pdf,.md,.json" />
         </div>
         <div class="status-line" id="status-line"></div>
       </section>
@@ -664,105 +568,22 @@
       T15: "Bài toán thực tế"
     };
 
-    // === STATE CHAT ===
-    let conversations = {};
-    let currentId = null;
-    let chatCounter = 1;
-
-    const chatListEl = document.getElementById("chat-list");
+    // ==== CHAT ====
     const messagesEl = document.getElementById("messages");
     const headerTagsEl = document.getElementById("header-tags");
     const inputEl = document.getElementById("chat-input");
     const sendBtn = document.getElementById("btn-send");
     const statusLine = document.getElementById("status-line");
-    const fileInput = document.getElementById("file-input");
-    const uploadBtn = document.getElementById("btn-upload");
-    const newChatBtn = document.getElementById("btn-new-chat");
     const statusText = document.getElementById("status-text");
+    const uploadBtn = document.getElementById("btn-upload");
+    const fileInput = document.getElementById("file-input");
 
-    const runTestsBtn = document.getElementById("btn-run-tests");
-    const createQuizBtn = document.getElementById("btn-create-quiz");
-    const exportPdfGlobalBtn = document.getElementById("btn-export-pdf-global");
-
-    // === STATE TEST/QUIZ ===
-    const testPanel = document.getElementById("test-panel");
-    const testPanelTitle = document.getElementById("test-panel-title");
-    const testSummary = document.getElementById("test-summary");
-    const testProgress = document.getElementById("test-progress");
-    const testQuestionEl = document.getElementById("test-question");
-    const testStandardsEl = document.getElementById("test-standards");
-    const testOptionsEl = document.getElementById("test-options");
-    const testExplainEl = document.getElementById("test-explanation");
-    const testFeedbackEl = document.getElementById("test-feedback");
-
-    const btnSwitchInput = document.getElementById("btn-switch-input");
-    const btnSwitchOutput = document.getElementById("btn-switch-output");
-    const btnCloseTest = document.getElementById("btn-close-test");
-    const btnPrevQuestion = document.getElementById("btn-prev-question");
-    const btnNextQuestion = document.getElementById("btn-next-question");
-    const btnGradeTest = document.getElementById("btn-grade-test");
-    const exportPdfBtn = document.getElementById("btn-export-pdf");
-
-    let testMode = "input"; // input | output | quiz
-    let testQuestions = [];
-    let testSession = null; // {mode, questions, answers, currentIndex, graded, perStandard, correctCount, total, styleStats}
-    let lastTestResults = null; // dùng cho xuất PDF
-
-    // ===== CHAT =====
-    function createNewConversation() {
-      const id = "chat-" + Date.now();
-      conversations[id] = {
-        id,
-        title: "Cuộc trò chuyện " + chatCounter++,
-        messages: [],
-        standards: []
-      };
-      currentId = id;
-      renderChatList();
-      renderMessages();
-      updateHeaderTags();
-      inputEl.focus();
-    }
-
-    function getCurrentConversation() {
-      if (!currentId || !conversations[currentId]) {
-        createNewConversation();
-      }
-      return conversations[currentId];
-    }
-
-    function renderChatList() {
-      chatListEl.innerHTML = "";
-      Object.values(conversations).forEach(conv => {
-        const div = document.createElement("div");
-        div.className = "chat-item" + (conv.id === currentId ? " active" : "");
-        div.onclick = () => {
-          currentId = conv.id;
-          renderChatList();
-          renderMessages();
-          updateHeaderTags();
-        };
-        const title = document.createElement("div");
-        title.className = "chat-item-title";
-        title.textContent = conv.title;
-        const sub = document.createElement("div");
-        sub.className = "chat-item-sub";
-        if (conv.messages.length) {
-          const first = conv.messages[0].content || "";
-          sub.textContent = first.slice(0, 32) + (first.length > 32 ? "…" : "");
-        } else {
-          sub.textContent = "Chưa có nội dung";
-        }
-        div.appendChild(title);
-        div.appendChild(sub);
-        chatListEl.appendChild(div);
-      });
-    }
+    let messages = []; // {role, content}
+    let currentStandards = [];
 
     function renderMessages() {
-      const conv = getCurrentConversation();
       messagesEl.innerHTML = "";
-      if (!conv.messages.length) {
+      if (!messages.length) {
         const intro = document.createElement("div");
         intro.style.color = "#9ca3af";
         intro.style.fontSize = "13px";
@@ -772,7 +593,7 @@
         intro.innerHTML = "Chào bạn 👋<br>Hãy đặt câu hỏi Toán 9, tải file bài tập, hoặc nhờ mình phân tích lỗi sai theo chuẩn T1–T15.";
         messagesEl.appendChild(intro);
       } else {
-        conv.messages.forEach(msg => {
+        messages.forEach(msg => {
           const row = document.createElement("div");
           row.className = "message-row " + msg.role;
 
@@ -809,10 +630,8 @@
     }
 
     function updateHeaderTags() {
-      const conv = getCurrentConversation();
       headerTagsEl.innerHTML = "";
-      if (!conv.standards || !conv.standards.length) return;
-      conv.standards.forEach(code => {
+      currentStandards.forEach(code => {
         const div = document.createElement("div");
         div.className = "tag-chip";
         div.textContent = code;
@@ -820,34 +639,23 @@
       });
     }
 
-    async function sendMessage() {
-      const text = inputEl.value.trim();
-      if (!text) return;
-      const conv = getCurrentConversation();
-
-      conv.messages.push({ role: "user", content: text });
-      inputEl.value = "";
-      renderMessages();
+    async function callChatAPI() {
       statusLine.textContent = "Đang suy nghĩ…";
       statusLine.classList.remove("error");
       sendBtn.disabled = true;
 
       try {
-        const payload = {
-          messages: conv.messages.map(m => ({ role: m.role, content: m.content }))
-        };
         const res = await fetch(API_BASE + "/chat/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ messages })
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
-        conv.messages.push({ role: "assistant", content: data.reply });
-        conv.standards = data.standards || [];
+        messages.push({ role: "assistant", content: data.reply });
+        currentStandards = data.standards || [];
         renderMessages();
         updateHeaderTags();
-        renderChatList();
         statusLine.textContent = "";
       } catch (err) {
         console.error(err);
@@ -858,46 +666,21 @@
       }
     }
 
-    async function sendHistoryOnly() {
-      const conv = getCurrentConversation();
-      if (!conv.messages.length) return;
-      statusLine.textContent = "Đang phân tích…";
-      statusLine.classList.remove("error");
-      sendBtn.disabled = true;
-
-      try {
-        const payload = {
-          messages: conv.messages.map(m => ({ role: m.role, content: m.content }))
-        };
-        const res = await fetch(API_BASE + "/chat/message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        conv.messages.push({ role: "assistant", content: data.reply });
-        conv.standards = data.standards || [];
-        renderMessages();
-        updateHeaderTags();
-        renderChatList();
-        statusLine.textContent = "";
-      } catch (err) {
-        console.error(err);
-        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
-        statusLine.classList.add("error");
-      } finally {
-        sendBtn.disabled = false;
-      }
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      messages.push({ role: "user", content: text });
+      inputEl.value = "";
+      renderMessages();
+      await callChatAPI();
     }
 
-    // Upload file -> parse
+    // upload file
     uploadBtn.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", async () => {
       const file = fileInput.files[0];
       if (!file) return;
 
-      const conv = getCurrentConversation();
       statusLine.textContent = "Đang đọc file " + file.name + "…";
       statusLine.classList.remove("error");
 
@@ -915,11 +698,9 @@
           ? data.content.slice(0, 600) + "\n[...đã cắt bớt...]"
           : data.content;
         const text = `Nội dung trích từ file "${data.filename}":\n\n` + snippet;
-
-        conv.messages.push({ role: "user", content: text });
+        messages.push({ role: "user", content: text });
         renderMessages();
-
-        await sendHistoryOnly();
+        await callChatAPI();
       } catch (err) {
         console.error(err);
         statusLine.textContent = "Không đọc được file. Kiểm tra /file/parse.";
@@ -929,205 +710,100 @@
       }
     });
 
-    // ===== TEST / QUIZ (kiểu "trình riêng") =====
-    function openTestPanel(mode) {
-      testMode = mode || "input";
-      testPanel.style.display = "flex";
-      testSummary.textContent = "Đang tải câu hỏi…";
-      exportPdfBtn.disabled = true;
-      exportPdfGlobalBtn.disabled = true;
-      testQuestions = [];
-      testSession = null;
-      lastTestResults = null;
-      loadTestQuestions();
-    }
-
-    function closeTestPanel() {
-      testPanel.style.display = "none";
-    }
-
-    async function loadTestQuestions() {
-      let endpoint = "/api/input_quiz";
-      if (testMode === "output" || testMode === "quiz") {
-        endpoint = "/api/output_quiz";
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
       }
+    });
+    sendBtn.addEventListener("click", sendMessage);
 
-      try {
-        const res = await fetch(API_BASE + endpoint);
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        testQuestions = data.questions || [];
-        if (!testQuestions.length) throw new Error("Không có câu hỏi.");
+    // ==== TEST / QUIZ ====
+    const btnRunInput = document.getElementById("btn-run-input");
+    const btnRunOutput = document.getElementById("btn-run-output");
+    const testPanel = document.getElementById("test-panel");
+    const btnCloseTest = document.getElementById("btn-close-test");
+    const testPanelTitle = document.getElementById("test-panel-title");
+    const testSummary = document.getElementById("test-summary");
+    const testProgress = document.getElementById("test-progress");
+    const testQuestionEl = document.getElementById("test-question");
+    const testStandardsEl = document.getElementById("test-standards");
+    const testOptionsEl = document.getElementById("test-options");
+    const testExplainEl = document.getElementById("test-explain");
+    const testFeedbackEl = document.getElementById("test-feedback");
+    const btnPrevQ = document.getElementById("btn-prev-q");
+    const btnNextQ = document.getElementById("btn-next-q");
+    const btnGradeTest = document.getElementById("btn-grade-test");
+    const btnExportPdf = document.getElementById("btn-export-pdf");
+    const btnExportPdfGlobal = document.getElementById("btn-export-pdf-global");
 
-        if (testMode === "quiz") {
-          testPanelTitle.textContent = "Quiz luyện tập T1–T15";
-        } else if (testMode === "input") {
-          testPanelTitle.textContent = "Bài kiểm tra đầu vào T1–T15";
-        } else {
-          testPanelTitle.textContent = "Bài kiểm tra đầu ra T1–T15";
-        }
+    let quizMode = "input";
+    let quizData = null;   // {questions, answers, graded, perStandard, correctCount, total, styleStats}
+    let lastTestResults = null;
 
-        testSummary.textContent =
-          "Trả lời từng câu, chọn đáp án A–D và trình bày ngắn gọn cách làm.";
-
-        testSession = {
-          mode: testMode,
-          questions: testQuestions,
-          currentIndex: 0,
-          answers: testQuestions.map(() => ({ choice: null, explanation: "", style: null, isCorrect: false })),
-          graded: false,
-          perStandard: {},
-          correctCount: 0,
-          total: testQuestions.length,
-          styleStats: {}
-        };
-
-        renderCurrentTestQuestion();
-      } catch (err) {
-        console.error(err);
-        testSummary.textContent = "Lỗi tải câu hỏi: " + err.message;
-      }
-    }
-
-    function renderCurrentTestQuestion() {
-      if (!testSession) return;
-      const idx = testSession.currentIndex;
-      const q = testSession.questions[idx];
-
-      testProgress.textContent = `Câu ${idx + 1} / ${testSession.questions.length}`;
-      testQuestionEl.textContent = q.text;
-      testStandardsEl.textContent = "Chuẩn liên quan: " + (q.standards || []).join(", ");
-
-      // render options
-      testOptionsEl.innerHTML = "";
-      const ans = testSession.answers[idx];
-      (q.options || []).forEach((opt, i) => {
-        const label = document.createElement("label");
-        const radio = document.createElement("input");
-        radio.type = "radio";
-        radio.name = "test-option";
-        radio.value = String(i);
-        if (ans.choice === i) radio.checked = true;
-        label.appendChild(radio);
-        label.appendChild(document.createTextNode(
-          " " + String.fromCharCode(65 + i) + ". " + opt
-        ));
-        testOptionsEl.appendChild(label);
-      });
-
-      testExplainEl.value = ans.explanation || "";
-
-      if (testSession.graded && ans.style) {
-        testFeedbackEl.textContent = feedbackFromStyle(ans, q);
-      } else {
-        testFeedbackEl.textContent = "";
-      }
-
-      btnPrevQuestion.disabled = idx === 0;
-      btnNextQuestion.disabled = idx === testSession.questions.length - 1;
-    }
-
-    function saveCurrentAnswer() {
-      if (!testSession) return;
-      const idx = testSession.currentIndex;
-      const ans = testSession.answers[idx];
-
-      const selected = document.querySelector('input[name="test-option"]:checked');
-      ans.choice = selected ? parseInt(selected.value, 10) : null;
-      ans.explanation = testExplainEl.value.trim();
-    }
-
-    function goToPrevQuestion() {
-      if (!testSession) return;
-      saveCurrentAnswer();
-      if (testSession.currentIndex > 0) {
-        testSession.currentIndex -= 1;
-        renderCurrentTestQuestion();
-      }
-    }
-
-    function goToNextQuestion() {
-      if (!testSession) return;
-      saveCurrentAnswer();
-      if (testSession.currentIndex < testSession.questions.length - 1) {
-        testSession.currentIndex += 1;
-        renderCurrentTestQuestion();
-      }
-    }
-
-    // phân loại thói quen làm bài / trình bày
     function classifyAnswerStyle(ans, q) {
-      const expl = (ans.explanation || "").trim();
-      const explLen = expl.length;
+      const expl = (ans.expl || "").trim();
+      const len = expl.length;
       const choice = ans.choice;
       const isCorrect = choice === q.correct_index;
 
-      if (choice == null) return "blank"; // bỏ trống
-
+      if (choice == null) return "blank";
       if (isCorrect) {
-        if (explLen < 15) return "correct_short";       // đúng nhưng trình bày rất ngắn
-        if (explLen < 40) return "correct_ok";          // đúng, trình bày vừa
-        return "correct_good";                          // đúng, trình bày chi tiết
+        if (len < 15) return "correct_short";
+        if (len < 40) return "correct_ok";
+        return "correct_good";
       } else {
-        if (explLen === 0) return "guess";              // khoanh bừa / không trình bày
-        if (explLen < 25) return "sloppy";             // trình bày ẩu
-        return "wrong_explained";                      // sai nhưng có trình bày, có cố gắng
+        if (!len) return "guess";
+        if (len < 25) return "sloppy";
+        return "wrong_explained";
       }
     }
 
     function feedbackFromStyle(ans, q) {
       const style = ans.style;
-      const isCorrect = ans.choice === q.correct_index;
       const labelCorrect = String.fromCharCode(65 + (q.correct_index ?? 0));
 
       if (style === "blank") {
-        return "Kết quả: Chưa làm / bỏ trống. Hãy thử trình bày một hướng giải, dù chưa chắc chắn.";
+        return "Chưa làm / bỏ trống. Hãy thử viết một hướng giải, dù chưa chắc.";
       }
       if (style === "correct_short") {
-        return "Kết quả: Đúng nhưng trình bày còn rất ngắn. Em nên ghi rõ các bước để khi ôn tập lại dễ hiểu hơn.";
+        return "Đúng nhưng trình bày rất ngắn. Nên ghi rõ hơn các bước để sau này dễ xem lại.";
       }
       if (style === "correct_ok") {
-        return "Kết quả: Đúng và trình bày tạm ổn. Có thể bổ sung thêm lý do / công thức em sử dụng để bài giải mạch lạc hơn.";
+        return "Đúng và trình bày tạm ổn. Có thể bổ sung lý do / công thức em dùng.";
       }
       if (style === "correct_good") {
-        return "Kết quả: Đúng và trình bày khá đầy đủ. Tiếp tục giữ thói quen này 👌";
+        return "Đúng và trình bày khá đầy đủ. Tiếp tục giữ thói quen này 👌";
       }
       if (style === "guess") {
-        return `Kết quả: Sai. Có vẻ em khoanh bừa hoặc chưa trình bày. Đáp án đúng là ${labelCorrect}. Em nên thử viết vài dòng về cách nghĩ của mình.`;
+        return `Sai, có vẻ khoanh bừa hoặc không trình bày. Đáp án đúng là ${labelCorrect}. Hãy thử viết suy nghĩ của mình.`;
       }
       if (style === "sloppy") {
-        return `Kết quả: Sai và trình bày còn ẩu. Đáp án đúng là ${labelCorrect}. Hãy viết chậm lại, từng bước một, tránh bỏ qua bước quan trọng.`;
+        return `Sai và trình bày còn vội. Đáp án đúng là ${labelCorrect}. Hãy làm chậm hơn và kiểm tra từng bước.`;
       }
       if (style === "wrong_explained") {
-        return `Kết quả: Sai nhưng em đã có trình bày. Đáp án đúng là ${labelCorrect}. Hãy so sánh từng bước với lời giải chuẩn để xem mình nhầm ở đâu.`;
+        return `Sai nhưng đã có trình bày. Đáp án đúng là ${labelCorrect}. So sánh với lời giải chuẩn để xem nhầm ở đâu.`;
       }
-      return isCorrect
-        ? "Kết quả: Đúng."
-        : `Kết quả: Sai. Đáp án đúng là ${labelCorrect}.`;
+      return `Đáp án đúng là ${labelCorrect}.`;
     }
 
     function describeStandardLevel(total, correct) {
-      if (!total) return "Chưa có câu hỏi thuộc nhóm này trong bài kiểm tra.";
-      const ratio = correct / total;
-      if (ratio >= 0.8) {
-        return "Mạnh – em làm tốt hầu hết câu hỏi thuộc nhóm chuẩn này.";
-      } else if (ratio >= 0.5) {
-        return "Trung bình – em đã nắm được một phần, nên luyện thêm để vững hơn.";
-      }
-      return "Cần củng cố – nên ôn lại lý thuyết và làm thêm bài tập minh họa.";
+      if (!total) return "Chưa có câu hỏi nhóm này.";
+      const r = correct / total;
+      if (r >= 0.8) return "Mạnh – em làm tốt hầu hết câu hỏi.";
+      if (r >= 0.5) return "Trung bình – đã nắm được một phần, nên luyện thêm.";
+      return "Cần củng cố – nên ôn lại lý thuyết và làm thêm bài mẫu.";
     }
 
     function overallText(total, correct) {
-      if (!total) {
-        return "Chưa có đủ dữ liệu để đánh giá.";
+      if (!total) return "Chưa có đủ dữ liệu để đánh giá.";
+      const r = correct / total;
+      if (r >= 0.8) {
+        return "Kết quả khá tốt. Em có thể bắt đầu luyện các dạng bài nâng cao, đồng thời ôn nhanh các dạng cơ bản để giữ phong độ.";
+      } else if (r >= 0.5) {
+        return "Kết quả ở mức trung bình. Em đã nắm được một phần kiến thức nhưng vẫn cần luyện thêm các dạng cơ bản, làm bài chậm lại và kiểm tra cẩn thận từng bước.";
       }
-      const ratio = correct / total;
-      if (ratio >= 0.8) {
-        return "Kết quả cho thấy em đang làm khá tốt bài kiểm tra này. Em có thể bắt đầu luyện các dạng bài nâng cao, đồng thời ôn lại nhanh các dạng cơ bản để giữ phong độ.";
-      } else if (ratio >= 0.5) {
-        return "Kết quả ở mức trung bình. Em đã nắm được một phần kiến thức nhưng vẫn cần luyện thêm một số dạng bài cơ bản, làm bài chậm lại và kiểm tra cẩn thận từng bước.";
-      }
-      return "Kết quả cho thấy em cần tập trung củng cố lại các kiến thức cơ bản, nên xem lại lý thuyết trong SGK, vở ghi và làm thêm bài tập mẫu cho từng chuẩn T1–T15.";
+      return "Kết quả cho thấy em cần tập trung củng cố lại kiến thức cơ bản. Nên xem lại lý thuyết trong SGK, vở ghi và làm thêm bài tập mẫu cho từng chuẩn T1–T15.";
     }
 
     function buildPresentationSummary(styleStats, totalQuestions) {
@@ -1141,33 +817,23 @@
       const correctShort = get("correct_short");
       const correctOk = get("correct_ok");
       const correctGood = get("correct_good");
-      const wrongExplained = get("wrong_explained");
+      const wrongExpl = get("wrong_explained");
 
       const lines = [];
-
       if (correctGood + correctOk > 0) {
-        lines.push(
-          `Có ${correctGood + correctOk}/${totalQuestions} câu em trình bày tương đối rõ ràng. Đây là điểm mạnh, hãy tiếp tục giữ thói quen ghi đủ các bước.`
-        );
+        lines.push(`Có ${correctGood + correctOk}/${totalQuestions} câu em trình bày khá rõ ràng. Đây là điểm mạnh, hãy giữ thói quen ghi đủ bước.`);
       }
       if (correctShort > 0) {
-        lines.push(
-          `Một số câu đúng (${correctShort} câu) nhưng trình bày còn quá ngắn. Em nên viết thêm lý do hoặc công thức để khi xem lại không bị quên cách làm.`
-        );
+        lines.push(`${correctShort} câu đúng nhưng trình bày còn quá ngắn. Em nên ghi thêm lý do / công thức để khi xem lại không quên cách làm.`);
       }
       if (blank + guess > 0) {
-        lines.push(
-          `Có ${blank + guess} câu em bỏ trống hoặc chỉ khoanh đáp án mà không trình bày. Hãy cố gắng viết ra suy nghĩ của mình, kể cả khi chưa chắc chắn.`
-        );
+        lines.push(`Có ${blank + guess} câu em bỏ trống hoặc chỉ khoanh đáp án. Hãy cố gắng viết ra suy nghĩ của mình, kể cả chưa chắc chắn.`);
       }
-      if (sloppy + wrongExplained > 0) {
-        lines.push(
-          `${sloppy + wrongExplained} câu sai nhưng vẫn có trình bày. Em nên so sánh lại với lời giải chuẩn để tìm chính xác bước mình nhầm, từ đó rút kinh nghiệm.`
-        );
+      if (sloppy + wrongExpl > 0) {
+        lines.push(`${sloppy + wrongExpl} câu sai nhưng vẫn có trình bày. Em nên so sánh với lời giải chuẩn để tìm chính xác bước bị nhầm.`);
       }
-
       if (!lines.length) {
-        lines.push("Thói quen trình bày hiện tại chưa rõ ràng, cần thêm dữ liệu để đánh giá.");
+        lines.push("Thói quen trình bày hiện chưa rõ ràng, cần thêm dữ liệu để đánh giá.");
       }
       return lines.join(" ");
     }
@@ -1176,7 +842,7 @@
       const codes = Object.keys(perStandard || {});
       if (!codes.length) {
         return [
-          "Chưa có dữ liệu đủ rõ để lập lịch học chi tiết. Em có thể bắt đầu ôn lại lần lượt từ T1 đến T5, mỗi ngày làm 3–5 bài tập cơ bản và nhờ Trợ lý Toán AI giải chi tiết các câu sai."
+          "Chưa có dữ liệu rõ ràng cho từng chuẩn. Em có thể bắt đầu ôn lần lượt từ T1 đến T5, mỗi ngày làm 3–5 bài cơ bản và nhờ Trợ lý Toán AI phân tích các câu sai."
         ];
       }
 
@@ -1186,47 +852,147 @@
         return { code, ratio, total: info.total };
       }).sort((a, b) => a.ratio - b.ratio);
 
-      // lấy tối đa 4 chuẩn yếu nhất để tập trung
       const focus = items.slice(0, 4);
       const focusCodes = focus.map(i => i.code);
       if (!focusCodes.length) focusCodes.push("T1", "T2", "T3");
 
       const lines = [];
-      const WEEK_PER_MONTH = 4;
       const TOTAL_WEEKS = 12;
+      const WEEK_PER_MONTH = 4;
 
       for (let w = 1; w <= TOTAL_WEEKS; w++) {
-        const month = Math.floor((w - 1) / WEEK_PER_MONTH) + 1; // 1..3
-        const weekInMonth = ((w - 1) % WEEK_PER_MONTH) + 1;    // 1..4
+        const month = Math.floor((w - 1) / WEEK_PER_MONTH) + 1;
+        const weekInMonth = ((w - 1) % WEEK_PER_MONTH) + 1;
         const code = focusCodes[(w - 1) % focusCodes.length];
         const label = STANDARD_LABELS[code] || ("Chuẩn " + code);
-
         lines.push(
-          `Tháng ${month}, tuần ${weekInMonth}: Tập trung vào ${code} – ${label}. ` +
-          "Ôn lại lý thuyết trong SGK, vở ghi; làm 3–5 bài tập tiêu biểu; sau đó nhờ Trợ lý Toán AI giải chi tiết các câu em làm sai. " +
-          "Tài liệu gợi ý: SGK Toán 9, SBT Toán 9, tìm video \"Toán 9 " + label + "\" trên YouTube để xem thêm ví dụ minh họa."
+          `Tháng ${month}, tuần ${weekInMonth}: tập trung vào ${code} – ${label}. Ôn lý thuyết, làm 3–5 bài tiêu biểu, sau đó nhờ Trợ lý Toán AI giải chi tiết các câu sai.`
         );
       }
 
       return lines;
     }
 
-    function gradeCurrentTest() {
-      if (!testSession) return;
+    function openTestPanel(mode) {
+      quizMode = mode;
+      testPanel.style.display = "flex";
+      testSummary.textContent = "Đang tải câu hỏi...";
+      btnExportPdf.disabled = true;
+      btnExportPdfGlobal.disabled = true;
+      quizData = null;
+      lastTestResults = null;
+      loadQuiz();
+    }
+
+    function closeTestPanel() {
+      testPanel.style.display = "none";
+    }
+
+    async function loadQuiz() {
+      const endpoint = quizMode === "input" ? "/api/input_quiz" : "/api/output_quiz";
+      try {
+        const res = await fetch(API_BASE + endpoint);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const questions = data.questions || [];
+        if (!questions.length) throw new Error("Không có câu hỏi.");
+        quizData = {
+          questions,
+          currentIndex: 0,
+          answers: questions.map(() => ({ choice: null, expl: "", style: null, isCorrect: false })),
+          graded: false,
+          perStandard: {},
+          correctCount: 0,
+          total: questions.length,
+          styleStats: {}
+        };
+
+        const modeLabel = quizMode === "input" ? "đầu vào" : "đầu ra";
+        testPanelTitle.textContent = "Bài kiểm tra " + modeLabel + " T1–T15";
+        testSummary.textContent = "Chọn đáp án A–D và trình bày cách nghĩ. Sau khi làm xong, bấm \"Chấm bài\" để nhận báo cáo & kế hoạch học.";
+        renderCurrentQuestion();
+      } catch (err) {
+        console.error(err);
+        testSummary.textContent = "Lỗi tải câu hỏi: " + err.message;
+      }
+    }
+
+    function renderCurrentQuestion() {
+      if (!quizData) return;
+      const idx = quizData.currentIndex;
+      const q = quizData.questions[idx];
+      const ans = quizData.answers[idx];
+
+      testProgress.textContent = `Câu ${idx + 1} / ${quizData.questions.length}`;
+      testQuestionEl.textContent = q.text;
+      testStandardsEl.textContent = "Chuẩn liên quan: " + (q.standards || []).join(", ");
+
+      testOptionsEl.innerHTML = "";
+      (q.options || []).forEach((opt, i) => {
+        const label = document.createElement("label");
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "test-option";
+        radio.value = String(i);
+        if (ans.choice === i) radio.checked = true;
+        label.appendChild(radio);
+        label.appendChild(document.createTextNode(" " + String.fromCharCode(65 + i) + ". " + opt));
+        testOptionsEl.appendChild(label);
+      });
+
+      testExplainEl.value = ans.expl || "";
+      if (quizData.graded && ans.style) {
+        testFeedbackEl.textContent = feedbackFromStyle(ans, q);
+      } else {
+        testFeedbackEl.textContent = "";
+      }
+
+      btnPrevQ.disabled = idx === 0;
+      btnNextQ.disabled = idx === quizData.questions.length - 1;
+    }
+
+    function saveCurrentAnswer() {
+      if (!quizData) return;
+      const idx = quizData.currentIndex;
+      const ans = quizData.answers[idx];
+      const selected = document.querySelector('input[name="test-option"]:checked');
+      ans.choice = selected ? parseInt(selected.value, 10) : null;
+      ans.expl = testExplainEl.value.trim();
+    }
+
+    function goPrev() {
+      if (!quizData) return;
+      saveCurrentAnswer();
+      if (quizData.currentIndex > 0) {
+        quizData.currentIndex -= 1;
+        renderCurrentQuestion();
+      }
+    }
+
+    function goNext() {
+      if (!quizData) return;
+      saveCurrentAnswer();
+      if (quizData.currentIndex < quizData.questions.length - 1) {
+        quizData.currentIndex += 1;
+        renderCurrentQuestion();
+      }
+    }
+
+    function gradeTest() {
+      if (!quizData) return;
       saveCurrentAnswer();
 
-      const { questions, answers } = testSession;
+      const { questions, answers } = quizData;
       let correct = 0;
       const perStandard = {};
-      const results = [];
       const styleStats = {};
+      const results = [];
 
       questions.forEach((q, idx) => {
         const ans = answers[idx];
         const isCorrect = ans.choice === q.correct_index;
         ans.isCorrect = isCorrect;
 
-        // phân loại style
         const style = classifyAnswerStyle(ans, q);
         ans.style = style;
         styleStats[style] = (styleStats[style] || 0) + 1;
@@ -1243,28 +1009,23 @@
           index: idx + 1,
           question: q.text,
           choice: ans.choice,
-          explanation: ans.explanation,
+          explanation: ans.expl,
           standards: q.standards || [],
           isCorrect,
           style
         });
       });
 
-      testSession.graded = true;
-      testSession.perStandard = perStandard;
-      testSession.correctCount = correct;
-      testSession.styleStats = styleStats;
+      quizData.graded = true;
+      quizData.perStandard = perStandard;
+      quizData.correctCount = correct;
+      quizData.styleStats = styleStats;
 
-      const modeLabel =
-        testSession.mode === "input" ? "đầu vào"
-          : testSession.mode === "output" ? "đầu ra"
-          : "quiz luyện tập";
-
-      testSummary.textContent =
-        `Đã chấm xong bài ${modeLabel}. Hãy xem lại từng câu, chú ý cả đáp án và cách trình bày, sau đó xuất PDF để lấy báo cáo & kế hoạch học theo quý.`;
+      const modeLabel = quizMode === "input" ? "đầu vào" : "đầu ra";
+      testSummary.textContent = `Đã chấm xong bài ${modeLabel}. Hãy xem lại từng câu, sau đó xuất PDF để lấy kế hoạch học theo quý.`;
 
       lastTestResults = {
-        mode: testSession.mode,
+        mode: quizMode,
         totalQuestions: questions.length,
         correctCount: correct,
         perStandard,
@@ -1272,13 +1033,10 @@
         styleStats
       };
 
-      exportPdfBtn.disabled = questions.length === 0;
-      exportPdfGlobalBtn.disabled = questions.length === 0;
+      btnExportPdf.disabled = !questions.length;
+      btnExportPdfGlobal.disabled = !questions.length;
 
-      renderCurrentTestQuestion();
-
-      // Đẩy 1 tóm tắt vào cuộc trò chuyện hiện tại
-      const conv = getCurrentConversation();
+      // Đẩy 1 tóm tắt vào cửa sổ chat cho vui
       const weakCodes = Object.keys(perStandard).filter(c => {
         const info = perStandard[c];
         return info.total && info.correct / info.total < 0.8;
@@ -1287,54 +1045,44 @@
         `Tóm tắt bài ${modeLabel}: em làm đúng ${correct}/${questions.length} câu. ` +
         (weakCodes.length
           ? `Một số chuẩn cần chú ý thêm: ${weakCodes.join(", ")}.`
-          : "Hiện chưa thấy chuẩn nào quá yếu, em vẫn nên ôn lại toàn bộ T1–T15 để giữ phong độ.");
-      conv.messages.push({
-        role: "assistant",
-        content: summaryLine
-      });
+          : "Chưa thấy chuẩn nào quá yếu, nhưng vẫn nên ôn lại toàn bộ T1–T15.");
+      messages.push({ role: "assistant", content: summaryLine });
       renderMessages();
+
+      renderCurrentQuestion();
     }
 
     function exportPdfReport() {
       if (!lastTestResults) return;
       if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("Không tải được thư viện xuất PDF (jsPDF).");
+        alert("Không tải được thư viện jsPDF.");
         return;
       }
-
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: "pt", format: "a4" });
 
-      // set font tiếng Việt
       try {
         doc.setFont("segoeuithis", "normal");
       } catch (e) {
-        // nếu font custom lỗi, fallback helvetica (sẽ mất dấu)
         doc.setFont("helvetica", "normal");
       }
 
       const s = lastTestResults;
+      const modeLabel =
+        s.mode === "input" ? "đầu vào" :
+        s.mode === "output" ? "đầu ra" : "quiz";
+
       let y = 40;
       const maxWidth = 500;
-      const modeLabel =
-        s.mode === "input" ? "đầu vào"
-          : s.mode === "output" ? "đầu ra"
-          : "quiz luyện tập";
 
-      // Tiêu đề
       doc.setFontSize(14);
-      doc.text(
-        `Báo cáo & kế hoạch học theo quý – Bài ${modeLabel} T1–T15 – K9 Math AI Assistant`,
-        40,
-        y
-      );
+      doc.text(`Báo cáo & kế hoạch học theo quý – Bài ${modeLabel} T1–T15 – K9 Math AI`, 40, y);
 
-      // Thời gian
       y += 20;
       doc.setFontSize(11);
       doc.text("Thời gian: " + new Date().toLocaleString("vi-VN"), 40, y);
 
-      // 1. Đánh giá tổng quan
+      // 1. Tổng quan
       y += 24;
       doc.setFontSize(11);
       doc.text("1. Đánh giá tổng quan", 40, y);
@@ -1350,7 +1098,7 @@
       // 1b. Thói quen trình bày
       y += 12;
       doc.setFontSize(11);
-      doc.text("1.b. Nhận xét về thói quen trình bày", 40, y);
+      doc.text("1.b. Nhận xét thói quen trình bày", 40, y);
       y += 14;
       doc.setFontSize(10);
       const presentLines = doc.splitTextToSize(
@@ -1360,10 +1108,10 @@
       doc.text(presentLines, 40, y);
       y += presentLines.length * 12;
 
-      // 2. Đánh giá theo từng chuẩn
+      // 2. Theo từng chuẩn
       y += 16;
       doc.setFontSize(11);
-      doc.text("2. Đánh giá theo từng nhóm chuẩn T1–T15", 40, y);
+      doc.text("2. Đánh giá theo từng chuẩn T1–T15", 40, y);
       y += 14;
       doc.setFontSize(10);
 
@@ -1385,7 +1133,7 @@
         });
       }
 
-      // 3. Kế hoạch học theo quý (3 tháng, ~12 tuần)
+      // 3. Kế hoạch 3 tháng
       y += 16;
       doc.setFontSize(11);
       doc.text("3. Kế hoạch học theo quý (3 tháng, 12 tuần)", 40, y);
@@ -1406,41 +1154,20 @@
       doc.save(`Bao_cao_${modeLabel.replace(" ", "_")}_T1-T15.pdf`);
     }
 
-    // ===== EVT =====
-    inputEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-    sendBtn.addEventListener("click", sendMessage);
-
-    newChatBtn.addEventListener("click", () => {
-      createNewConversation();
-      renderChatList();
-      renderMessages();
-      updateHeaderTags();
-      statusLine.textContent = "";
-    });
-
-    runTestsBtn.addEventListener("click", () => openTestPanel("input"));
-    createQuizBtn.addEventListener("click", () => openTestPanel("quiz"));
-
-    btnSwitchInput.addEventListener("click", () => openTestPanel("input"));
-    btnSwitchOutput.addEventListener("click", () => openTestPanel("output"));
+    btnRunInput.addEventListener("click", () => openTestPanel("input"));
+    btnRunOutput.addEventListener("click", () => openTestPanel("output"));
     btnCloseTest.addEventListener("click", closeTestPanel);
+    btnPrevQ.addEventListener("click", goPrev);
+    btnNextQ.addEventListener("click", goNext);
+    btnGradeTest.addEventListener("click", gradeTest);
+    btnExportPdf.addEventListener("click", exportPdfReport);
+    btnExportPdfGlobal.addEventListener("click", exportPdfReport);
 
-    btnPrevQuestion.addEventListener("click", goToPrevQuestion);
-    btnNextQuestion.addEventListener("click", goToNextQuestion);
-    btnGradeTest.addEventListener("click", gradeCurrentTest);
-
-    exportPdfBtn.addEventListener("click", exportPdfReport);
-    exportPdfGlobalBtn.addEventListener("click", exportPdfReport);
-
-    // Init
-    createNewConversation();
+    // init
+    renderMessages();
     statusText.textContent = "Server: " + window.location.origin;
   </script>
 </body>
 </html>
+
 
