@@ -1,26 +1,58 @@
 import os
 import random
+import json
 from typing import List, Dict
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pypdf import PdfReader
 from openai import OpenAI
-from fastapi.staticfiles import StaticFiles
 
 # ========================
-#  CONFIG
+#  PATH / CONFIG
 # ========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CHUAN_DAU_RA_FILE = os.path.join(BASE_DIR, "chuan_dau_ra.md")
 INDEX_FILE = os.path.join(BASE_DIR, "index.html")
+
+
+def _detect_chuan_file() -> str:
+    """
+    Thử tìm file chuẩn đầu ra với vài tên phổ biến.
+    Ưu tiên:
+      1. chuan_dau_ra.md
+      2. chuan-dau-ra.md
+      3. chuan-dau-ra.txt
+    """
+    candidates = [
+        os.path.join(BASE_DIR, "chuan_dau_ra.md"),
+        os.path.join(BASE_DIR, "chuan-dau-ra.md"),
+        os.path.join(BASE_DIR, "chuan-dau-ra.txt"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            print(f"[INFO] Đã tìm thấy file chuẩn đầu ra: {p}")
+            return p
+    # Không có file nào → trả về đường dẫn mặc định, nhưng parse() sẽ dùng fallback
+    print(
+        "[WARN] Không tìm thấy file chuẩn đầu ra nào (chuan_dau_ra.md / chuan-dau-ra.md). "
+        "Sử dụng bộ chuẩn mặc định T1–T15."
+    )
+    return candidates[0]
+
+
+CHUAN_DAU_RA_FILE = _detect_chuan_file()
 
 app = FastAPI(title="Math AI Assistant")
 
 # phục vụ /static (jspdf + font)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_dir = os.path.join(BASE_DIR, "static")
+if os.path.isdir(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+else:
+    print(f"[WARN] Không tìm thấy thư mục static: {static_dir}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,15 +87,6 @@ class Standard(BaseModel):
     description: str
 
 
-class TestCase(BaseModel):
-    input: str
-    expected_standards: List[str]
-
-
-class TestGenerationResponse(BaseModel):
-    tests: List[TestCase]
-
-
 class ClassifyRequest(BaseModel):
     text: str
 
@@ -72,7 +95,6 @@ class ClassifyResponse(BaseModel):
     standards: List[str]
 
 
-# Quiz models
 class QuizQuestion(BaseModel):
     id: int
     text: str
@@ -86,7 +108,7 @@ class QuizResponse(BaseModel):
 
 
 # ========================
-#  FALLBACK T1–T15
+#  DEFAULT T1–T15
 # ========================
 def default_standards() -> Dict[str, Standard]:
     names = {
@@ -110,7 +132,7 @@ def default_standards() -> Dict[str, Standard]:
         code: Standard(
             code=code,
             name=name,
-            description=f"Chuẩn {code} – {name} (mặc định, dùng khi thiếu file chuan_dau_ra.md).",
+            description=f"Chuẩn {code} – {name} (mặc định, dùng khi thiếu file chuan_dau_ra).",
         )
         for code, name in names.items()
     }
@@ -121,9 +143,6 @@ def default_standards() -> Dict[str, Standard]:
 # ========================
 def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     if not os.path.exists(path):
-        print(
-            f"[WARN] Không tìm thấy file chuẩn đầu ra: {path} – dùng fallback mặc định."
-        )
         return default_standards()
 
     with open(path, "r", encoding="utf-8") as f:
@@ -137,6 +156,7 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
     for line in lines:
         s = line.strip()
         if s.startswith("## "):
+            # lưu chuẩn trước
             if code:
                 standards[code] = Standard(
                     code=code, name=name, description="\n".join(buf).strip()
@@ -161,7 +181,7 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
         )
 
     if not standards:
-        print("[WARN] File chuẩn đầu ra rỗng – dùng fallback mặc định.")
+        print("[WARN] File chuẩn đầu ra tồn tại nhưng rỗng – dùng fallback mặc định.")
         standards = default_standards()
 
     print(f"[INFO] Loaded {len(standards)} standards: {list(standards.keys())}")
@@ -169,7 +189,6 @@ def parse_chuan_dau_ra_md(path: str) -> Dict[str, Standard]:
 
 
 STANDARDS = parse_chuan_dau_ra_md(CHUAN_DAU_RA_FILE)
-
 
 # ========================
 #  SIMPLE KEYWORD DETECTOR
@@ -179,9 +198,9 @@ def detect_standards_from_text(text: str) -> List[str]:
     found: List[str] = []
 
     KEYWORDS = {
-        "T1": ["ucln", "bcnn", "lũy thừa", "số mũ", "luy thua"],
+        "T1": ["ucln", "bcnn", "lũy thừa", "luy thua", "số mũ", "so mu"],
         "T2": ["phần trăm", "%", "tỉ lệ", "tỷ lệ", "giảm giá"],
-        "T3": ["góc", "tam giác", "chứng minh", "tam giac"],
+        "T3": ["góc", "tam giác", "tam giac", "chứng minh"],
         "T4": ["căn bậc hai", "căn bậc 2", "sqrt"],
         "T5": ["phương trình bậc nhất", "pt bậc nhất"],
         "T6": ["hệ phương trình", "hpt"],
@@ -207,18 +226,15 @@ def detect_standards_from_text(text: str) -> List[str]:
 
 
 # ========================
-#  API: HEALTH
+#  HEALTH
 # ========================
 @app.get("/api/health")
 def api_health():
-    return {
-        "status": "ok",
-        "standards_loaded": list(STANDARDS.keys()),
-    }
+    return {"status": "ok", "standards_loaded": list(STANDARDS.keys())}
 
 
 # ========================
-#  API: CHAT – TRỢ LÝ GIẢI TOÁN
+#  CHAT – TRỢ LÝ TOÁN
 # ========================
 @app.post("/chat/message", response_model=ChatResponse)
 async def chat_message(req: ChatRequest):
@@ -236,9 +252,9 @@ async def chat_message(req: ChatRequest):
         "- Dùng LaTeX với $...$ (inline) và $$...$$ (block) để hiển thị công thức.\n"
         "- Sau khi giải xong, hãy:\n"
         "  • Nói ngắn gọn học sinh vừa ôn lại nội dung gì (có thể nhắc T1–T15 nếu phù hợp).\n"
-        "  • Gợi ý 1–3 hoạt động học tiếp theo (dạng bài nên luyện thêm, công thức cần nhớ...).\n"
+        "  • Gợi ý 1–3 hoạt động học tiếp theo.\n"
         "  • Có thể gợi ý rằng bạn có thể tạo quiz luyện tập nếu học sinh muốn.\n"
-        "- Trình bày gọn, không thừa dòng trắng, không nói kiểu ngây thơ.\n"
+        "- Trình bày gọn, không thừa dòng trắng.\n"
         "\n"
         "Dưới đây là tóm tắt các chuẩn T1–T15:\n"
         f"{standards_text}"
@@ -268,7 +284,7 @@ async def chat_message(req: ChatRequest):
 
 
 # ========================
-#  API: CLASSIFY OFFLINE (DEV)
+#  CLASSIFY – DEV
 # ========================
 @app.post("/api/classify", response_model=ClassifyResponse)
 async def api_classify(req: ClassifyRequest):
@@ -277,16 +293,15 @@ async def api_classify(req: ClassifyRequest):
 
 
 # ========================
-#  QUIZ ĐẦU VÀO / ĐẦU RA – NGÂN HÀNG CÂU HỎI + RANDOM
+#  QUIZ – FALLBACK NGÂN HÀNG CÂU HỎI
+# (dùng khi OpenAI lỗi / không có API key)
 # ========================
-
-# Ngân hàng câu hỏi đầu vào
 INPUT_QUESTION_BANK: List[QuizQuestion] = [
     QuizQuestion(
         id=1,
         text="Kết quả của 2^3 · 2^2, viết dưới dạng lũy thừa của 2, là:",
         options=["2^5", "2^6", "10", "32"],
-        correct_index=0,  # 2^(3+2) = 2^5
+        correct_index=0,
         standards=["T1"],
     ),
     QuizQuestion(
@@ -303,76 +318,8 @@ INPUT_QUESTION_BANK: List[QuizQuestion] = [
         correct_index=2,
         standards=["T3"],
     ),
-    QuizQuestion(
-        id=4,
-        text="Căn bậc hai số học (căn không âm) của 81 là:",
-        options=["±9", "9", "–9", "8"],
-        correct_index=1,  # số học => 9
-        standards=["T4"],
-    ),
-    QuizQuestion(
-        id=5,
-        text="Nghiệm của phương trình 2x – 5 = 9 là:",
-        options=["x = 2", "x = 3", "x = 5", "x = 7"],
-        correct_index=3,
-        standards=["T5"],
-    ),
-    QuizQuestion(
-        id=6,
-        text="Hệ nào sau đây là hệ phương trình bậc nhất hai ẩn?",
-        options=[
-            "x^2 + y = 1; x + y^2 = 2",
-            "x + y = 3; 2x – y = 1",
-            "x^2 + y^2 = 4; xy = 1",
-            "x – y^2 = 0; x + y = 1",
-        ],
-        correct_index=1,
-        standards=["T6"],
-    ),
-    QuizQuestion(
-        id=7,
-        text="Bất phương trình 3x – 2 > 4 tương đương với:",
-        options=["x > 2", "x > 3", "x > 4", "x > 6"],
-        correct_index=0,
-        standards=["T7"],
-    ),
-    QuizQuestion(
-        id=8,
-        text="Đồ thị của hàm số y = 2x + 1 là:",
-        options=[
-            "Một đoạn thẳng",
-            "Một đường tròn",
-            "Một parabol",
-            "Một đường thẳng",
-        ],
-        correct_index=3,
-        standards=["T8"],
-    ),
-    QuizQuestion(
-        id=9,
-        text="Trong tam giác vuông, định lý Pytago phát biểu:",
-        options=[
-            "Hai cạnh góc vuông có tổng bằng cạnh huyền",
-            "Bình phương cạnh huyền bằng tổng bình phương hai cạnh góc vuông",
-            "Bình phương cạnh huyền bằng hiệu bình phương hai cạnh góc vuông",
-            "Chu vi tam giác vuông luôn bằng 180°",
-        ],
-        correct_index=1,
-        standards=["T3", "T9"],
-    ),
-    QuizQuestion(
-        id=10,
-        text=(
-            "Một bồn nước hình trụ có bán kính đáy 0,5 m và chiều cao 1,2 m. "
-            "Thể tích gần đúng của bồn (làm tròn 1 chữ số thập phân, π ≈ 3,14) là:"
-        ),
-        options=["0,9 m³", "0,8 m³", "1,0 m³", "3,1 m³"],
-        correct_index=0,
-        standards=["T12", "T15"],
-    ),
 ]
 
-# Ngân hàng câu hỏi đầu ra
 OUTPUT_QUESTION_BANK: List[QuizQuestion] = [
     QuizQuestion(
         id=101,
@@ -383,110 +330,22 @@ OUTPUT_QUESTION_BANK: List[QuizQuestion] = [
     ),
     QuizQuestion(
         id=102,
-        text=(
-            "Một lớp học có 30 bạn, trong đó 40% là học sinh nữ. "
-            "Số học sinh nữ trong lớp là:"
-        ),
+        text="Một lớp có 30 học sinh, trong đó 40% là nữ. Số học sinh nữ là:",
         options=["10", "12", "14", "16"],
         correct_index=1,
         standards=["T2"],
-    ),
-    QuizQuestion(
-        id=103,
-        text="Trong tam giác ABC, nếu góc A = 60°, góc B = 50° thì góc C bằng:",
-        options=["60°", "70°", "80°", "90°"],
-        correct_index=2,
-        standards=["T3"],
-    ),
-    QuizQuestion(
-        id=104,
-        text="Biểu thức nào dưới đây bằng √(25/36)?",
-        options=["5/6", "6/5", "–5/6", "5/3"],
-        correct_index=0,
-        standards=["T4"],
-    ),
-    QuizQuestion(
-        id=105,
-        text="Phương trình nào sau đây có nghiệm x = −2?",
-        options=[
-            "2x + 1 = 0",
-            "3x – 2 = 0",
-            "x + 2 = 0",
-            "x – 2 = 0",
-        ],
-        correct_index=2,
-        standards=["T5"],
-    ),
-    QuizQuestion(
-        id=106,
-        text="Hệ phương trình nào có nghiệm (x, y) = (2, 1)?",
-        options=[
-            "x + y = 3; x – y = 1",
-            "x + y = 3; x + y = 4",
-            "2x + y = 3; x – y = 3",
-            "x – y = 2; x + y = 1",
-        ],
-        correct_index=0,
-        standards=["T6"],
-    ),
-    QuizQuestion(
-        id=107,
-        text="Tập nghiệm của bất phương trình x/2 ≥ 3 là:",
-        options=[
-            "x ≥ 3",
-            "x ≥ 6",
-            "x ≤ 6",
-            "x > 6",
-        ],
-        correct_index=1,
-        standards=["T7"],
-    ),
-    QuizQuestion(
-        id=108,
-        text="Hàm số nào sau đây có đồ thị là đường thẳng đi qua gốc tọa độ?",
-        options=[
-            "y = 2x + 1",
-            "y = -x + 3",
-            "y = 3x",
-            "y = 2x - 4",
-        ],
-        correct_index=2,
-        standards=["T8"],
-    ),
-    QuizQuestion(
-        id=109,
-        text=(
-            "Trong tam giác vuông ABC tại A, BC = 13, AC = 5. "
-            "Độ dài AB bằng:"
-        ),
-        options=["8", "10", "12", "18"],
-        correct_index=0,
-        standards=["T3", "T9"],
-    ),
-    QuizQuestion(
-        id=110,
-        text=(
-            "Một cốc nước hình trụ có bán kính đáy 3 cm, chiều cao 12 cm. "
-            "Thể tích gần đúng của cốc (π ≈ 3,14) là:"
-        ),
-        options=["339,1 cm³", "271,3 cm³", "452,2 cm³", "150,7 cm³"],
-        correct_index=0,
-        standards=["T12", "T15"],
     ),
 ]
 
 
 def _pick_random_questions(bank: List[QuizQuestion], n: int = 10) -> List[QuizQuestion]:
-    """Chọn ngẫu nhiên tối đa n câu hỏi từ ngân hàng, đồng thời lọc chuẩn hợp lệ."""
     if not bank:
         return []
-
     if len(bank) <= n:
-        chosen = bank[:]  # copy
+        chosen = bank[:]
     else:
         chosen = random.sample(bank, n)
 
-    # Tạo bản sao để không sửa trực tiếp ngân hàng gốc
     result: List[QuizQuestion] = []
     for q in chosen:
         filtered_standards = [s for s in q.standards if s in STANDARDS]
@@ -502,20 +361,126 @@ def _pick_random_questions(bank: List[QuizQuestion], n: int = 10) -> List[QuizQu
     return result
 
 
+# ========================
+#  QUIZ – GENERATE BẰNG OPENAI
+# ========================
+def _generate_quiz_with_openai(mode: str, n: int = 10) -> List[QuizQuestion]:
+    """
+    mode: 'input' (dễ hơn, đầu vào) hoặc 'output' (khó hơn, đầu ra / luyện tập).
+    Trả về list QuizQuestion; nếu lỗi → raise, để caller fallback.
+    """
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise RuntimeError("No OPENAI_API_KEY")
+
+    # mô tả chuẩn T1–T15 cho prompt
+    standards_text = "\n".join(
+        f"{s.code}: {s.name}\n{s.description}" for s in STANDARDS.values()
+    )
+
+    difficulty = (
+        "mức độ cơ bản đến trung bình, phù hợp kiểm tra đầu vào."
+        if mode == "input"
+        else "mức độ từ trung bình đến vận dụng, có thể lồng ghép bối cảnh thực tế đơn giản."
+    )
+
+    system_prompt = (
+        "Bạn là giáo viên Toán 9, tạo câu hỏi trắc nghiệm 4 lựa chọn A–D.\n"
+        "Mỗi câu hỏi phải được gắn với 1–3 chuẩn T1–T15.\n"
+        "Xuất ra **DUY NHẤT** một JSON hợp lệ theo cấu trúc:\n"
+        "{\n"
+        '  "questions": [\n'
+        "    {\n"
+        '      "text": "câu hỏi...",\n'
+        '      "options": ["A...", "B...", "C...", "D..."],\n'
+        '      "correct_index": 0,\n'
+        '      "standards": ["T1","T3"]\n'
+        "    }, ...\n"
+        "  ]\n"
+        "}\n"
+        "Không giải thích thêm, không thêm markdown, chỉ trả JSON.\n"
+        "\n"
+        "Tóm tắt chuẩn T1–T15:\n"
+        f"{standards_text}\n"
+    )
+
+    user_prompt = (
+        f"Hãy tạo {n} câu hỏi trắc nghiệm Toán 9 ({difficulty}) cho mode '{mode}'. "
+        "Mỗi câu hỏi 4 đáp án, đúng duy nhất 1 đáp án."
+    )
+
+    completion = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.4,
+    )
+    raw = completion.choices[0].message.content
+
+    try:
+        data = json.loads(raw)
+    except Exception as e:
+        raise RuntimeError(f"JSON parse error: {e} – content: {raw!r}") from e
+
+    questions_raw = data.get("questions", [])
+    questions: List[QuizQuestion] = []
+    next_id_base = 1000 if mode == "output" else 1
+
+    for i, q in enumerate(questions_raw):
+        text = str(q.get("text", "")).strip()
+        options = q.get("options", [])
+        if len(options) != 4:
+            continue
+        correct_index = int(q.get("correct_index", 0))
+        if not (0 <= correct_index <= 3):
+            continue
+        standards_codes = [
+            s for s in q.get("standards", []) if s in STANDARDS
+        ] or ["T1"]
+
+        questions.append(
+            QuizQuestion(
+                id=next_id_base + i,
+                text=text,
+                options=[str(o) for o in options],
+                correct_index=correct_index,
+                standards=standards_codes,
+            )
+        )
+
+    if not questions:
+        raise RuntimeError("Không sinh được câu hỏi hợp lệ nào từ OpenAI.")
+
+    return questions[:n]
+
+
 @app.get("/api/input_quiz", response_model=QuizResponse)
 async def api_input_quiz():
-    questions = _pick_random_questions(INPUT_QUESTION_BANK, n=10)
-    return QuizResponse(questions=questions)
+    # Ưu tiên: sinh bằng OpenAI
+    try:
+        questions = _generate_quiz_with_openai(mode="input", n=10)
+        return QuizResponse(questions=questions)
+    except Exception as e:
+        print(f"[WARN] Lỗi sinh quiz đầu vào bằng OpenAI, dùng fallback: {e}")
+        questions = _pick_random_questions(INPUT_QUESTION_BANK, n=10)
+        return QuizResponse(questions=questions)
 
 
 @app.get("/api/output_quiz", response_model=QuizResponse)
 async def api_output_quiz():
-    questions = _pick_random_questions(OUTPUT_QUESTION_BANK, n=10)
-    return QuizResponse(questions=questions)
+    # Ưu tiên: sinh bằng OpenAI
+    try:
+        questions = _generate_quiz_with_openai(mode="output", n=10)
+        return QuizResponse(questions=questions)
+    except Exception as e:
+        print(f"[WARN] Lỗi sinh quiz đầu ra bằng OpenAI, dùng fallback: {e}")
+        questions = _pick_random_questions(OUTPUT_QUESTION_BANK, n=10)
+        return QuizResponse(questions=questions)
 
 
 # ========================
-#  FILE PARSE
+#  FILE PARSE (TXT/PDF)
 # ========================
 @app.post("/file/parse")
 async def parse_file(file: UploadFile = File(...)):
