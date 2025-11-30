@@ -1192,8 +1192,14 @@
         return;
       }
 
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
+       const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+  try {
+    doc.setFont("segoeuithis", "normal"); // <-- TÊN FONT đúng từ addFont
+  } catch (e) {
+    doc.setFont("helvetica", "normal");
+  }
       const s = lastTestResults;
       let y = 40;
       const maxWidth = 500;
