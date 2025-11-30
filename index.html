@@ -532,6 +532,12 @@
               <span class="icon">❓</span>
               <span>Tạo quiz luyện tập</span>
             </button>
+
+            <!-- Nút xuất PDF chung: chỉ bật sau khi đã chấm bài -->
+            <button class="header-btn" id="btn-export-pdf-global" disabled>
+              <span class="icon">📄</span>
+              <span>Xuất PDF đánh giá</span>
+            </button>
           </div>
           <div class="tag-list" id="header-tags">
             <!-- Dynamic tags -->
@@ -613,6 +619,25 @@
     // ======= CẤU HÌNH BACKEND (cùng domain) =======
     const API_BASE = ""; // dùng đường dẫn tương đối: "/chat/message", "/file/parse"
 
+    // Nhãn T1–T15 để báo cáo PDF
+    const STANDARD_LABELS = {
+      T1: "Số & lũy thừa",
+      T2: "Tỉ lệ & phần trăm",
+      T3: "Góc & tam giác",
+      T4: "Căn bậc hai",
+      T5: "Phương trình bậc nhất",
+      T6: "Hệ phương trình",
+      T7: "Bất phương trình",
+      T8: "Hàm số & đồ thị",
+      T9: "Tam giác vuông & định lý Pytago",
+      T10: "Đường tròn",
+      T11: "Tiếp tuyến",
+      T12: "Hình trụ, nón, cầu",
+      T13: "Thống kê",
+      T14: "Xác suất",
+      T15: "Bài toán thực tế"
+    };
+
     // ======= STATE FRONTEND =======
     let conversations = {};
     let currentId = null;
@@ -632,6 +657,7 @@
     const runTestsBtn = document.getElementById("btn-run-tests");
     const createQuizBtn = document.getElementById("btn-create-quiz");
     const exportPdfBtn = document.getElementById("btn-export-pdf");
+    const exportPdfGlobalBtn = document.getElementById("btn-export-pdf-global");
 
     const testPanel = document.getElementById("test-panel");
     const testPanelTitle = document.getElementById("test-panel-title");
@@ -642,7 +668,7 @@
     const btnCloseTest = document.getElementById("btn-close-test");
     const btnGradeTest = document.getElementById("btn-grade-test");
 
-    let lastTestResults = null;
+    let lastTestResults = null; // chỉ lưu trong phiên
     let testMode = "input"; // 'input' | 'output'
     let testQuestions = [];
 
@@ -685,8 +711,8 @@
         const sub = document.createElement("div");
         sub.className = "chat-item-sub";
         if (conv.messages.length) {
-          sub.textContent = conv.messages[0].content.slice(0, 32) +
-            (conv.messages[0].content.length > 32 ? "…" : "");
+          const first = conv.messages[0].content || "";
+          sub.textContent = first.slice(0, 32) + (first.length > 32 ? "…" : "");
         } else {
           sub.textContent = "Chưa có nội dung";
         }
@@ -875,6 +901,7 @@
       testSummary.textContent =
         "Đang tải bài kiểm tra " + (testMode === "input" ? "đầu vào" : "đầu ra") + "…";
       exportPdfBtn.disabled = true;
+      exportPdfGlobalBtn.disabled = true;
       lastTestResults = null;
       await loadTestQuestions();
     }
@@ -899,7 +926,7 @@
             ? "Bài kiểm tra đầu vào T1–T15"
             : "Bài kiểm tra đầu ra T1–T15";
         testSummary.textContent =
-          "Chọn đáp án A–D cho từng câu, sau đó bấm \"Chấm bài\".";
+          "Chọn đáp án A–D cho từng câu, sau đó bấm \"Chấm bài\" để xem đánh giá.";
 
         // render câu hỏi
         testTableBody.innerHTML = "";
@@ -913,10 +940,10 @@
           tdQuestion.textContent = q.text;
 
           const tdStandards = document.createElement("td");
-          tdStandards.textContent = q.standards.join(", ");
+          tdStandards.textContent = (q.standards || []).join(", ");
 
           const tdAnswer = document.createElement("td");
-          q.options.forEach((opt, i) => {
+          (q.options || []).forEach((opt, i) => {
             const label = document.createElement("label");
             label.style.display = "block";
             const radio = document.createElement("input");
@@ -949,11 +976,39 @@
       }
     }
 
+    function describeStandardLevel(total, correct) {
+      if (!total) {
+        return "Chưa có câu hỏi thuộc nhóm này trong bài kiểm tra.";
+      }
+      const ratio = correct / total;
+      if (ratio >= 0.8) {
+        return "Mạnh – làm tốt hầu hết câu hỏi thuộc nhóm chuẩn này.";
+      } else if (ratio >= 0.5) {
+        return "Trung bình – đã nắm được một phần, nên luyện thêm để vững hơn.";
+      }
+      return "Cần củng cố – nên ôn lại lý thuyết và làm thêm bài tập.";
+    }
+
+    function overallText(total, correct) {
+      if (!total) {
+        return "Chưa có đủ dữ liệu để đánh giá.";
+      }
+      const ratio = correct / total;
+      if (ratio >= 0.8) {
+        return "Kết quả cho thấy em đang làm khá tốt bài kiểm tra này. Có thể tiếp tục luyện các dạng bài nâng cao, đồng thời duy trì ôn tập những chủ đề đã làm đúng.";
+      } else if (ratio >= 0.5) {
+        return "Kết quả ở mức trung bình. Em đã nắm được một phần kiến thức, nhưng vẫn cần luyện thêm một số dạng bài để đạt độ vững chắc cao hơn.";
+      }
+      return "Kết quả cho thấy em cần tập trung củng cố lại các kiến thức cơ bản, nên xem lại lý thuyết và làm thêm bài tập minh họa cho từng chuẩn.";
+    }
+
     function gradeCurrentTest() {
       if (!testQuestions.length) return;
 
       let correct = 0;
+      let answered = 0;
       const results = [];
+      const perStandard = {};
 
       testQuestions.forEach((q, idx) => {
         const selected = document.querySelector(
@@ -962,6 +1017,9 @@
         const userIndex = selected ? parseInt(selected.value, 10) : null;
         const isCorrect = userIndex === q.correct_index;
 
+        if (userIndex !== null && !Number.isNaN(userIndex)) {
+          answered++;
+        }
         if (isCorrect) correct++;
 
         const resultCell = testTableBody.querySelector(
@@ -975,22 +1033,44 @@
           resultCell.appendChild(badge);
         }
 
+        (q.standards || []).forEach(code => {
+          if (!perStandard[code]) {
+            perStandard[code] = { total: 0, correct: 0 };
+          }
+          perStandard[code].total += 1;
+          if (isCorrect) {
+            perStandard[code].correct += 1;
+          }
+        });
+
         results.push({
           index: idx + 1,
           input: q.text,
-          expected: q.standards,
-          ok: isCorrect,
+          standards: q.standards || [],
+          ok: isCorrect
         });
       });
 
       const total = testQuestions.length;
-      const failed = total - correct;
+
       const modeLabel = testMode === "input" ? "đầu vào" : "đầu ra";
 
-      testSummary.textContent = `Kết quả bài kiểm tra ${modeLabel}: Đúng ${correct}/${total} câu.`;
+      // Không hiển thị rõ số câu đúng/sai, chỉ nhắc đã có đánh giá
+      testSummary.textContent =
+        `Đã chấm xong bài kiểm tra ${modeLabel}. Nhấn "Xuất PDF báo cáo" hoặc "Xuất PDF đánh giá" để xem nhận xét chi tiết theo từng chuẩn.`;
 
-      lastTestResults = { total, passed: correct, failed, results };
-      exportPdfBtn.disabled = total === 0;
+      lastTestResults = {
+        mode: testMode,
+        totalQuestions: total,
+        answered,
+        correct,
+        perStandard,
+        results
+      };
+
+      const hasQuestions = total > 0;
+      exportPdfBtn.disabled = !hasQuestions;
+      exportPdfGlobalBtn.disabled = !hasQuestions;
     }
 
     function exportPdfReport() {
@@ -998,11 +1078,14 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: "pt", format: "a4" });
 
+      const s = lastTestResults;
       let y = 40;
+      const modeLabel = s.mode === "input" ? "đầu vào" : "đầu ra";
+      const maxWidth = 500;
+
       doc.setFontSize(14);
-      const modeLabel = testMode === "input" ? "đầu vào" : "đầu ra";
       doc.text(
-        `Báo cáo bài kiểm tra ${modeLabel} T1–T15 – K9 Math AI Assistant`,
+        `Báo cáo đánh giá bài kiểm tra ${modeLabel} T1–T15 – K9 Math AI Assistant`,
         40,
         y
       );
@@ -1011,47 +1094,73 @@
       doc.setFontSize(11);
       doc.text("Thời gian: " + new Date().toLocaleString(), 40, y);
 
-      y += 16;
-      const s = lastTestResults;
-      doc.text(
-        `Tổng số câu: ${s.total}   Đúng: ${s.passed}   Sai: ${s.failed}`,
-        40,
-        y
-      );
-
+      // Đánh giá tổng quan
       y += 24;
       doc.setFontSize(11);
-      doc.text("Chi tiết:", 40, y);
+      doc.text("1. Đánh giá tổng quan", 40, y);
       y += 14;
+      const overallLines = doc.splitTextToSize(
+        overallText(s.totalQuestions, s.correct),
+        maxWidth
+      );
+      doc.setFontSize(10);
+      doc.text(overallLines, 40, y);
+      y += overallLines.length * 12;
 
-      const maxWidth = 500;
+      // Đánh giá theo từng chuẩn
+      y += 10;
+      doc.setFontSize(11);
+      doc.text("2. Đánh giá theo từng nhóm chuẩn", 40, y);
+      y += 14;
+      doc.setFontSize(10);
 
-      s.results.forEach((r) => {
-        if (y > 760) {
-          doc.addPage();
-          y = 40;
-        }
-        doc.setFontSize(11);
-        doc.text(`#${r.index} – ${r.ok ? "Đúng" : "Sai"}`, 40, y);
-        y += 12;
-
-        doc.setFontSize(9);
-        doc.text("Câu hỏi:", 40, y);
-        y += 10;
-        const inputLines = doc.splitTextToSize(r.input, maxWidth);
-        doc.text(inputLines, 60, y);
-        y += inputLines.length * 10;
-
+      const codes = Object.keys(s.perStandard || {}).sort();
+      if (!codes.length) {
         doc.text(
-          "Chuẩn liên quan: " + (r.expected || []).join(", "),
-          60,
+          "Chưa có dữ liệu đầy đủ để phân tích theo từng chuẩn.",
+          40,
           y
         );
         y += 14;
+      } else {
+        codes.forEach(code => {
+          const info = s.perStandard[code];
+          const label = STANDARD_LABELS[code] || `Chuẩn ${code}`;
+          const levelText = describeStandardLevel(info.total, info.correct);
+          if (y > 760) {
+            doc.addPage();
+            y = 40;
+          }
+          const line = `${code} – ${label}: ${levelText}`;
+          const wrapped = doc.splitTextToSize(line, maxWidth);
+          doc.text(wrapped, 40, y);
+          y += wrapped.length * 12;
+        });
+      }
+
+      // Gợi ý tiếp theo
+      y += 16;
+      if (y > 760) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.setFontSize(11);
+      doc.text("3. Gợi ý tiếp theo", 40, y);
+      y += 14;
+      doc.setFontSize(10);
+      const suggest = [
+        "- Luyện thêm các bài tập thuộc những chuẩn được đánh giá \"Cần củng cố\".",
+        "- Xem lại lý thuyết và ví dụ mẫu cho các chủ đề em còn sai nhiều.",
+        "- Có thể sử dụng lại Trợ lý Toán AI để hỏi từng dạng bài cụ thể hoặc tạo quiz luyện tập."
+      ];
+      suggest.forEach(line => {
+        const wrapped = doc.splitTextToSize(line, maxWidth);
+        doc.text(wrapped, 40, y);
+        y += wrapped.length * 12;
       });
 
       doc.save(
-        `Bao_cao_bai_kiem_tra_${modeLabel.replace(" ", "_")}_T1-T15.pdf`
+        `Bao_cao_danh_gia_${modeLabel.replace(" ", "_")}_T1-T15.pdf`
       );
     }
 
@@ -1137,6 +1246,7 @@ Chỉ trả lời nội dung quiz, không cần giải thích chi tiết.
     btnCloseTest.addEventListener("click", closeTestPanel);
     btnGradeTest.addEventListener("click", gradeCurrentTest);
     exportPdfBtn.addEventListener("click", exportPdfReport);
+    exportPdfGlobalBtn.addEventListener("click", exportPdfReport);
     createQuizBtn.addEventListener("click", createQuizFromConversation);
 
     // Init
@@ -1145,4 +1255,3 @@ Chỉ trả lời nội dung quiz, không cần giải thích chi tiết.
   </script>
 </body>
 </html>
-
