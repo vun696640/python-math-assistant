@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from pypdf import PdfReader
 from openai import OpenAI
+from fastapi.staticfiles import StaticFiles
 
 # ========================
 #  CONFIG
@@ -17,7 +18,6 @@ CHUAN_DAU_RA_FILE = os.path.join(BASE_DIR, "chuan_dau_ra.md")
 INDEX_FILE = os.path.join(BASE_DIR, "index.html")
 
 app = FastAPI(title="Math AI Assistant")
-from fastapi.staticfiles import StaticFiles
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
