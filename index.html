@@ -482,9 +482,9 @@
     }
   </style>
 
-  <!-- jsPDF dùng để xuất PDF -->
-  <script src="/static/js/jspdf.umd.min.js"></script>
-      </script>
+  <!-- pdfmake để xuất PDF (Unicode, có dấu) -->
+  <script src="/static/js/pdfmake.min.js"></script>
+  <script src="/static/js/vfs_fonts.js"></script>
 
   <!-- MathJax -->
   <script>
@@ -699,8 +699,8 @@
 
     let testMode = "input"; // input | output | quiz
     let testQuestions = [];
-    let testSession = null; // {mode, questions, answers, currentIndex, graded, perStandard, correctCount, total}
-    let lastTestResults = null; // dùng cho xuất PDF
+    let testSession = null;
+    let lastTestResults = null;
 
     // ===== CHAT =====
     function createNewConversation() {
@@ -878,7 +878,7 @@
         statusLine.textContent = "";
       } catch (err) {
         console.error(err);
-        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
+        statusLine.textContent = "Không đọc được file. Kiểm tra /file/parse.";
         statusLine.classList.add("error");
       } finally {
         sendBtn.disabled = false;
@@ -923,7 +923,7 @@
       }
     });
 
-    // ===== TEST / QUIZ (theo kiểu "trình riêng") =====
+    // ===== TEST / QUIZ (trình riêng) =====
     function openTestPanel(mode) {
       testMode = mode || "input";
       testPanel.style.display = "flex";
@@ -990,7 +990,6 @@
       testQuestionEl.textContent = q.text;
       testStandardsEl.textContent = "Chuẩn liên quan: " + (q.standards || []).join(", ");
 
-      // render options
       testOptionsEl.innerHTML = "";
       const ans = testSession.answers[idx];
       (q.options || []).forEach((opt, i) => {
@@ -1009,7 +1008,6 @@
 
       testExplainEl.value = ans.explanation || "";
 
-      // feedback sau khi chấm
       if (testSession.graded && ans.hasOwnProperty("isCorrect")) {
         if (ans.isCorrect) {
           testFeedbackEl.textContent = "Kết quả: Đúng. Tiếp tục duy trì cách làm này 👌";
@@ -1023,7 +1021,6 @@
         testFeedbackEl.textContent = "";
       }
 
-      // disable prev/next ở biên
       btnPrevQuestion.disabled = idx === 0;
       btnNextQuestion.disabled = idx === testSession.questions.length - 1;
     }
@@ -1064,7 +1061,7 @@
       } else if (ratio >= 0.5) {
         return "Trung bình – em đã nắm được một phần, nên luyện thêm để vững hơn.";
       }
-      return "Cần củng cố – nên ôn lại lý thuyết và làm thêm bài tập minh họa.";
+      return "Yếu – cần ôn lại lý thuyết cơ bản và làm thêm bài tập mẫu.";
     }
 
     function overallText(total, correct) {
@@ -1073,44 +1070,11 @@
       }
       const ratio = correct / total;
       if (ratio >= 0.8) {
-        return "Kết quả cho thấy em đang làm khá tốt bài kiểm tra này. Có thể bắt đầu luyện các dạng bài nâng cao và duy trì ôn tập các chủ đề đã vững.";
+        return "Kết quả cho thấy em đang làm khá tốt bài kiểm tra này. Em có thể bắt đầu luyện các dạng bài nâng cao và duy trì ôn tập các chủ đề đã vững.";
       } else if (ratio >= 0.5) {
         return "Kết quả ở mức trung bình. Em đã nắm được một phần kiến thức nhưng vẫn cần luyện thêm một số dạng bài để chắc hơn.";
       }
       return "Kết quả cho thấy em cần tập trung củng cố lại các kiến thức cơ bản, nên xem lại lý thuyết và làm thêm bài tập mẫu cho từng chuẩn.";
-    }
-
-    function buildScheduleFromResults(perStandard) {
-      const codes = Object.keys(perStandard);
-      if (!codes.length) {
-        return [
-          "Chưa có dữ liệu đủ rõ để lập lịch chi tiết.",
-          "Em có thể tiếp tục luyện các bài toán cơ bản của Toán 9 và sử dụng Trợ lý Toán AI khi gặp khó khăn."
-        ];
-      }
-
-      // xếp chuẩn từ yếu -> mạnh
-      const items = codes.map(code => {
-        const info = perStandard[code];
-        const ratio = info.total ? info.correct / info.total : 0;
-        return { code, ratio, total: info.total };
-      }).sort((a, b) => a.ratio - b.ratio);
-
-      const focus = items.slice(0, 4); // tối đa 4 chuẩn cần tập trung
-      const lines = [];
-      let day = 1;
-      focus.forEach(item => {
-        const label = STANDARD_LABELS[item.code] || ("Chuẩn " + item.code);
-        lines.push(
-          `Ngày ${day}: Ôn lại ${item.code} – ${label}. Làm thêm 3–5 bài tập mẫu và nhờ Trợ lý Toán AI giải chi tiết các câu em làm sai.`
-        );
-        day++;
-      });
-
-      lines.push(
-        "Ngày tiếp theo: Lặp lại chu trình với các chuẩn em cảm thấy còn yếu, xen kẽ các bài toán thực tế (T15) để vận dụng."
-      );
-      return lines;
     }
 
     function gradeCurrentTest() {
@@ -1155,7 +1119,7 @@
           : "quiz luyện tập";
 
       testSummary.textContent =
-        `Đã chấm xong bài ${modeLabel}. Hãy xem lại từng câu, sau đó xuất PDF để lấy báo cáo và lịch học gợi ý.`;
+        `Đã chấm xong bài ${modeLabel}. Hãy xem lại từng câu, sau đó xuất PDF để lấy báo cáo và kế hoạch học 1 quý.`;
 
       lastTestResults = {
         mode: testSession.mode,
@@ -1168,9 +1132,8 @@
       exportPdfBtn.disabled = questions.length === 0;
       exportPdfGlobalBtn.disabled = questions.length === 0;
 
-      renderCurrentTestQuestion(); // cập nhật feedback cho câu hiện tại
+      renderCurrentTestQuestion();
 
-      // Đẩy 1 tóm tắt vào cuộc trò chuyện hiện tại để “kết nối”
       const conv = getCurrentConversation();
       const summaryLine = `Tóm tắt ${modeLabel}: em làm đúng khoảng ${correct}/${questions.length} câu. Một số chuẩn cần chú ý thêm: ${
         Object.keys(perStandard).filter(c => {
@@ -1185,101 +1148,189 @@
       renderMessages();
     }
 
+    // === LẬP 3 BẢNG / 3 THÁNG ===
+    function buildQuarterCalendar(perStandard) {
+      const entries = Object.entries(perStandard || {});
+
+      if (!entries.length) {
+        return [
+          {
+            text: "Chưa có dữ liệu rõ để lập lịch chi tiết. Em có thể bắt đầu từ các chủ đề cơ bản (T1–T5), mỗi tuần chọn 1–2 chủ đề để ôn lại và làm bài tập.",
+            margin: [0, 4, 0, 0]
+          }
+        ];
+      }
+
+      const weakCodes = [];
+      const midCodes = [];
+      const strongCodes = [];
+
+      entries.forEach(([code, info]) => {
+        const ratio = info.total ? info.correct / info.total : 0;
+        if (ratio < 0.5) weakCodes.push(code);
+        else if (ratio < 0.8) midCodes.push(code);
+        else strongCodes.push(code);
+      });
+
+      const weakStr = weakCodes.length ? weakCodes.join(", ") : "các chuẩn cơ bản (T1–T5)";
+      const midStr  = midCodes.length  ? midCodes.join(", ")  : weakStr;
+      const strongStr = strongCodes.length ? strongCodes.join(", ") : midStr;
+
+      const headerRow = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
+      function buildMonth(title, weekTexts) {
+        const body = [ headerRow ];
+        weekTexts.forEach(text => {
+          body.push(new Array(7).fill(text));
+        });
+        return [
+          { text: title, style: "sectionTitle" },
+          {
+            table: {
+              headerRows: 1,
+              widths: ["*", "*", "*", "*", "*", "*", "*"],
+              body
+            },
+            layout: "lightHorizontalLines",
+            margin: [0, 4, 0, 12]
+          }
+        ];
+      }
+
+      const month1Texts = [
+        `Tuần 1: Ôn các chuẩn yếu ${weakStr}; mỗi ngày 3–5 bài cơ bản.`,
+        `Tuần 2: Tiếp tục ${weakStr}, tập trung vào dạng em làm sai trong bài kiểm tra.`,
+        `Tuần 3: Kết hợp ${weakStr} với ${midStr} trong các bài tổng hợp ngắn.`,
+        `Tuần 4: Làm 1–2 đề ngắn bao phủ ${weakStr} và ${midStr}.`
+      ];
+
+      const month2Texts = [
+        `Tuần 5: Ôn nhanh ${weakStr}, bắt đầu tăng số bài vận dụng.`,
+        `Tuần 6: Tập trung ${midStr} – mỗi ngày phối hợp 2–3 dạng bài.`,
+        `Tuần 7: Xen kẽ bài toán thực tế (T15) với ${weakStr}/${midStr}.`,
+        `Tuần 8: Làm 1 đề mô phỏng kiểm tra trên lớp, tự chấm và rút kinh nghiệm.`
+      ];
+
+      const month3Texts = [
+        `Tuần 9: Ôn lại toàn bộ ${weakStr} + ${midStr}; tổng hợp công thức & lỗi sai hay gặp.`,
+        `Tuần 10: Mỗi ngày chọn 1 chuẩn bất kỳ làm 3–5 bài, ghi lại lỗi sai.`,
+        `Tuần 11: Làm 2 đề tổng hợp 45 phút, bấm giờ như kiểm tra thật.`,
+        `Tuần 12: Ôn nhẹ, xem lại “cheat sheet” công thức và những câu sai trước đó.`
+      ];
+
+      let blocks = [];
+      blocks = blocks
+        .concat(buildMonth("Tháng 1 – Củng cố nền tảng", month1Texts))
+        .concat(buildMonth("Tháng 2 – Mở rộng & vận dụng", month2Texts))
+        .concat(buildMonth("Tháng 3 – Ôn tập & kiểm tra", month3Texts));
+
+      return blocks;
+    }
+
     function exportPdfReport() {
       if (!lastTestResults) return;
-      if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("Không tải được thư viện xuất PDF (jsPDF).");
+      if (!window.pdfMake) {
+        alert("Không tải được thư viện pdfMake. Kiểm tra /static/js/pdfmake.min.js và vfs_fonts.js.");
         return;
       }
 
-       const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-
-  try {
-    doc.setFont("segoeuithis", "normal"); // <-- TÊN FONT đúng từ addFont
-  } catch (e) {
-    doc.setFont("helvetica", "normal");
-  }
       const s = lastTestResults;
-      let y = 40;
-      const maxWidth = 500;
       const modeLabel =
         s.mode === "input" ? "đầu vào"
           : s.mode === "output" ? "đầu ra"
           : "quiz luyện tập";
 
-      doc.setFontSize(14);
-      doc.text(
-        `Báo cáo & lịch học – Bài ${modeLabel} T1–T15 – K9 Math AI Assistant`,
-        40,
-        y
-      );
+      const overall = overallText(s.totalQuestions, s.correct);
+      const perStandard = s.perStandard || {};
+      const entries = Object.entries(perStandard).sort((a, b) => a[0].localeCompare(b[0]));
 
-      y += 20;
-      doc.setFontSize(11);
-      doc.text("Thời gian: " + new Date().toLocaleString(), 40, y);
+      const tableBody = [
+        [
+          { text: "Chuẩn", bold: true },
+          { text: "Nội dung", bold: true },
+          { text: "Đúng/Số câu", bold: true },
+          { text: "Nhận xét", bold: true }
+        ]
+      ];
 
-      // 1. Báo cáo tổng quan
-      y += 24;
-      doc.setFontSize(11);
-      doc.text("1. Đánh giá tổng quan", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-      const overallLines = doc.splitTextToSize(
-        overallText(s.totalQuestions, s.correct),
-        maxWidth
-      );
-      doc.text(overallLines, 40, y);
-      y += overallLines.length * 12;
-
-      // 2. Đánh giá theo từng chuẩn
-      y += 16;
-      doc.setFontSize(11);
-      doc.text("2. Đánh giá theo từng nhóm chuẩn", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-
-      const codes = Object.keys(s.perStandard || {}).sort();
-      if (!codes.length) {
-        doc.text("Chưa có dữ liệu đủ rõ để phân tích theo chuẩn.", 40, y);
-        y += 14;
+      if (!entries.length) {
+        tableBody.push([
+          { text: "—", italics: true },
+          { text: "—", italics: true },
+          { text: "—", italics: true },
+          { text: "Chưa có đủ dữ liệu để thống kê theo chuẩn.", italics: true }
+        ]);
       } else {
-        codes.forEach(code => {
-          const info = s.perStandard[code];
-          const line = `${code} – ${(STANDARD_LABELS[code] || "Chuẩn " + code)}: ${describeStandardLevel(info.total, info.correct)}`;
-          const wrapped = doc.splitTextToSize(line, maxWidth);
-          if (y + wrapped.length * 12 > 770) {
-            doc.addPage();
-            y = 40;
-          }
-          doc.text(wrapped, 40, y);
-          y += wrapped.length * 12;
+        entries.forEach(([code, info]) => {
+          const label = STANDARD_LABELS[code] || ("Chuẩn " + code);
+          const correct = info.correct || 0;
+          const total = info.total || 0;
+          const rate = total ? Math.round((correct / total) * 100) : 0;
+          tableBody.push([
+            code,
+            label,
+            `${correct}/${total} (${rate}%)`,
+            describeStandardLevel(total, correct)
+          ]);
         });
       }
 
-      // 3. Lịch học dự kiến
-      y += 16;
-      doc.setFontSize(11);
-      doc.text("3. Lịch học dự kiến (gợi ý)", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-      const scheduleLines = buildScheduleFromResults(s.perStandard || {});
-      scheduleLines.forEach(line => {
-        const wrapped = doc.splitTextToSize(line, maxWidth);
-        if (y + wrapped.length * 12 > 770) {
-          doc.addPage();
-          y = 40;
+      const calendarBlocks = buildQuarterCalendar(perStandard);
+
+      const docDefinition = {
+        content: [
+          {
+            text: `Báo cáo & kế hoạch học 1 quý – Bài ${modeLabel} T1–T15 – K9 Math AI Assistant`,
+            style: "header"
+          },
+          {
+            text: "Thời gian: " + new Date().toLocaleString(),
+            style: "subheader",
+            margin: [0, 4, 0, 12]
+          },
+          { text: "1. Đánh giá tổng quan", style: "sectionTitle" },
+          {
+            text: overall,
+            margin: [0, 4, 0, 12]
+          },
+
+          { text: "2. Đánh giá theo từng nhóm chuẩn", style: "sectionTitle" },
+          {
+            table: {
+              widths: ["auto", "*", "auto", "*"],
+              body: tableBody
+            },
+            layout: "lightHorizontalLines",
+            margin: [0, 6, 0, 12]
+          },
+
+          { text: "3. Kế hoạch học tập trong 1 quý (3 tháng, ~12 tuần)", style: "sectionTitle" },
+          ...calendarBlocks
+        ],
+        styles: {
+          header: {
+            fontSize: 16,
+            bold: true
+          },
+          subheader: {
+            fontSize: 10,
+            italics: true
+          },
+          sectionTitle: {
+            fontSize: 12,
+            bold: true,
+            margin: [0, 8, 0, 4]
+          }
+        },
+        defaultStyle: {
+          font: "Roboto",
+          fontSize: 11
         }
-        doc.text(wrapped, 40, y);
-        y += wrapped.length * 12;
-      });
+      };
 
-      doc.save(`Bao_cao_${modeLabel.replace(" ", "_")}_T1-T15.pdf`);
+      const fileName = `Bao_cao_ke_hoach_quy_${modeLabel.replace(" ", "_")}_T1-T15.pdf`;
+      pdfMake.createPdf(docDefinition).download(fileName);
     }
-
-    // ===== QUIZ từ hội thoại: ở đây quizMode chỉ dùng bộ câu hỏi "output",
-    // nhưng chấm xong sẽ tóm tắt + gợi ý trong cuộc trò chuyện hiện tại.
-    // (Tránh gọi LLM thêm để code nhẹ & ổn định.)
 
     // ===== EVT =====
     inputEl.addEventListener("keydown", (e) => {
@@ -1318,3 +1369,4 @@
   </script>
 </body>
 </html>
+
