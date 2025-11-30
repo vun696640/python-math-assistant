@@ -482,8 +482,15 @@
     }
   </style>
 
-  <!-- jsPDF dùng để xuất PDF – bản UMD, dùng window.jspdf.jsPDF -->
+  <!-- jsPDF dùng để xuất PDF -->
   <script src="/static/js/jspdf.umd.min.js"></script>
+  <script>
+    // Tạo global jsPDF cho file font segoeuithis-normal.js (dùng jsPDF.API)
+    if (window.jspdf && window.jspdf.jsPDF) {
+      window.jsPDF = window.jspdf.jsPDF;
+    }
+  </script>
+  <script src="/static/js/segoeuithis-normal.js"></script>
 
   <!-- MathJax -->
   <script>
@@ -640,36 +647,21 @@
     const API_BASE = "";
 
     const STANDARD_LABELS = {
-      T1: "So & luy thua",
-      T2: "Ti le & phan tram",
-      T3: "Goc & tam giac",
-      T4: "Can bac hai",
-      T5: "Phuong trinh bac nhat",
-      T6: "He phuong trinh",
-      T7: "Bat phuong trinh",
-      T8: "Ham so & do thi",
-      T9: "Tam giac vuong & dinh ly Pytago",
-      T10: "Duong tron",
-      T11: "Tiep tuyen",
-      T12: "Hinh tru, non, cau",
-      T13: "Thong ke",
-      T14: "Xac suat",
-      T15: "Bai toan thuc te"
-    };
-
-    // Gợi ý tài liệu (hardcode, giả lập “tìm kiếm tham khảo”)
-    const STANDARD_RESOURCES = {
-      T1: ["SGK Toan 9 tap 1, Bai luy thua", "Tim video 'Luy thua lop 9' tren YouTube"],
-      T2: ["SGK Toan 9 tap 1, Bai ti le phan tram", "Tim video 'Bai tap phan tram lop 9'"],
-      T3: ["SGK Toan 9 tap 1, Chuong goc & tam giac", "Tim video 'Chung minh tam giac lop 9'"],
-      T4: ["SGK Toan 9 tap 1, Bai can bac hai", "Tim video 'Can bac hai lop 9'"],
-      T5: ["SGK Toan 9 tap 2, Bai phuong trinh bac nhat", "Tim video 'Phuong trinh bac nhat lop 9'"],
-      T6: ["SGK Toan 9 tap 2, Bai he phuong trinh", "Tim video 'He phuong trinh lop 9'"],
-      T7: ["SGK Toan 9 tap 2, Bai bat phuong trinh", "Tim video 'Bat phuong trinh lop 9'"],
-      T8: ["SGK Toan 9 tap 2, Bai ham so & do thi", "Tim video 'Ham so bac nhat lop 9'"],
-      T9: ["SGK Toan 9 tap 1, Bai dinh ly Pytago", "Tim video 'Dinh ly Pytago lop 9'"],
-      T12:["SGK Toan 9 tap 2, Bai hinh tru-non-cau", "Tim video 'The tich hinh tru non cau'"],
-      T15:["SGK Toan 9, cac bai tap thuc te", "Tim video 'Bai toan thuc te lop 9'"]
+      T1: "Số & lũy thừa",
+      T2: "Tỉ lệ & phần trăm",
+      T3: "Góc & tam giác",
+      T4: "Căn bậc hai",
+      T5: "Phương trình bậc nhất",
+      T6: "Hệ phương trình",
+      T7: "Bất phương trình",
+      T8: "Hàm số & đồ thị",
+      T9: "Tam giác vuông & định lý Pythagore",
+      T10: "Đường tròn",
+      T11: "Tiếp tuyến",
+      T12: "Hình trụ, nón, cầu",
+      T13: "Thống kê",
+      T14: "Xác suất",
+      T15: "Bài toán thực tế"
     };
 
     // === STATE CHAT ===
@@ -713,15 +705,15 @@
 
     let testMode = "input"; // input | output | quiz
     let testQuestions = [];
-    let testSession = null; // {mode, questions, answers, currentIndex, graded, perStandard, correctCount, total, explanationStats}
-    let lastTestResults = null; // cho PDF
+    let testSession = null; // {mode, questions, answers, currentIndex, graded, perStandard, correctCount, total, styleStats}
+    let lastTestResults = null; // dùng cho xuất PDF
 
     // ===== CHAT =====
     function createNewConversation() {
       const id = "chat-" + Date.now();
       conversations[id] = {
         id,
-        title: "Cuoc tro chuyen " + chatCounter++,
+        title: "Cuộc trò chuyện " + chatCounter++,
         messages: [],
         standards: []
       };
@@ -759,7 +751,7 @@
           const first = conv.messages[0].content || "";
           sub.textContent = first.slice(0, 32) + (first.length > 32 ? "…" : "");
         } else {
-          sub.textContent = "Chua co noi dung";
+          sub.textContent = "Chưa có nội dung";
         }
         div.appendChild(title);
         div.appendChild(sub);
@@ -777,7 +769,7 @@
         intro.style.maxWidth = "480px";
         intro.style.margin = "40px auto 0";
         intro.style.textAlign = "center";
-        intro.innerHTML = "Chao ban 👋<br>Hay dat cau hoi Toan 9, tai file bai tap, hoac nho minh phan tich loi sai theo chuan T1–T15.";
+        intro.innerHTML = "Chào bạn 👋<br>Hãy đặt câu hỏi Toán 9, tải file bài tập, hoặc nhờ mình phân tích lỗi sai theo chuẩn T1–T15.";
         messagesEl.appendChild(intro);
       } else {
         conv.messages.forEach(msg => {
@@ -793,7 +785,7 @@
           avatar.textContent = msg.role === "assistant" ? "AI" : "You";
 
           const metaText = document.createElement("span");
-          metaText.textContent = msg.role === "assistant" ? "Tro ly Toan AI" : "Ban";
+          metaText.textContent = msg.role === "assistant" ? "Trợ lý Toán AI" : "Bạn";
 
           meta.appendChild(avatar);
           meta.appendChild(metaText);
@@ -836,7 +828,7 @@
       conv.messages.push({ role: "user", content: text });
       inputEl.value = "";
       renderMessages();
-      statusLine.textContent = "Dang suy nghi…";
+      statusLine.textContent = "Đang suy nghĩ…";
       statusLine.classList.remove("error");
       sendBtn.disabled = true;
 
@@ -859,7 +851,7 @@
         statusLine.textContent = "";
       } catch (err) {
         console.error(err);
-        statusLine.textContent = "Khong goi duoc API /chat/message. Kiem tra server.";
+        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
         statusLine.classList.add("error");
       } finally {
         sendBtn.disabled = false;
@@ -869,7 +861,7 @@
     async function sendHistoryOnly() {
       const conv = getCurrentConversation();
       if (!conv.messages.length) return;
-      statusLine.textContent = "Dang phan tich…";
+      statusLine.textContent = "Đang phân tích…";
       statusLine.classList.remove("error");
       sendBtn.disabled = true;
 
@@ -892,7 +884,7 @@
         statusLine.textContent = "";
       } catch (err) {
         console.error(err);
-        statusLine.textContent = "Khong goi duoc API /chat/message. Kiem tra server.";
+        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
         statusLine.classList.add("error");
       } finally {
         sendBtn.disabled = false;
@@ -906,7 +898,7 @@
       if (!file) return;
 
       const conv = getCurrentConversation();
-      statusLine.textContent = "Dang doc file " + file.name + "…";
+      statusLine.textContent = "Đang đọc file " + file.name + "…";
       statusLine.classList.remove("error");
 
       const formData = new FormData();
@@ -920,9 +912,9 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         const snippet = data.content.length > 600
-          ? data.content.slice(0, 600) + "\n[...da cat bot...]"
+          ? data.content.slice(0, 600) + "\n[...đã cắt bớt...]"
           : data.content;
-        const text = `Noi dung trich tu file "${data.filename}":\n\n` + snippet;
+        const text = `Nội dung trích từ file "${data.filename}":\n\n` + snippet;
 
         conv.messages.push({ role: "user", content: text });
         renderMessages();
@@ -930,18 +922,18 @@
         await sendHistoryOnly();
       } catch (err) {
         console.error(err);
-        statusLine.textContent = "Khong doc duoc file. Kiem tra /file/parse.";
+        statusLine.textContent = "Không đọc được file. Kiểm tra /file/parse.";
         statusLine.classList.add("error");
       } finally {
         fileInput.value = "";
       }
     });
 
-    // ===== TEST / QUIZ (trinh rieng) =====
+    // ===== TEST / QUIZ (kiểu "trình riêng") =====
     function openTestPanel(mode) {
       testMode = mode || "input";
       testPanel.style.display = "flex";
-      testSummary.textContent = "Dang tai cau hoi…";
+      testSummary.textContent = "Đang tải câu hỏi…";
       exportPdfBtn.disabled = true;
       exportPdfGlobalBtn.disabled = true;
       testQuestions = [];
@@ -965,34 +957,35 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         testQuestions = data.questions || [];
-        if (!testQuestions.length) throw new Error("Khong co cau hoi.");
+        if (!testQuestions.length) throw new Error("Không có câu hỏi.");
 
         if (testMode === "quiz") {
-          testPanelTitle.textContent = "Quiz luyen tap T1–T15";
+          testPanelTitle.textContent = "Quiz luyện tập T1–T15";
         } else if (testMode === "input") {
-          testPanelTitle.textContent = "Bai kiem tra dau vao T1–T15";
+          testPanelTitle.textContent = "Bài kiểm tra đầu vào T1–T15";
         } else {
-          testPanelTitle.textContent = "Bai kiem tra dau ra T1–T15";
+          testPanelTitle.textContent = "Bài kiểm tra đầu ra T1–T15";
         }
 
-        testSummary.textContent = "Tra loi tung cau, chon dap an A–D va trinh bay ngan gon cach lam.";
+        testSummary.textContent =
+          "Trả lời từng câu, chọn đáp án A–D và trình bày ngắn gọn cách làm.";
 
         testSession = {
           mode: testMode,
           questions: testQuestions,
           currentIndex: 0,
-          answers: testQuestions.map(() => ({ choice: null, explanation: "", isCorrect: null })),
+          answers: testQuestions.map(() => ({ choice: null, explanation: "", style: null, isCorrect: false })),
           graded: false,
           perStandard: {},
           correctCount: 0,
           total: testQuestions.length,
-          explanationStats: null
+          styleStats: {}
         };
 
         renderCurrentTestQuestion();
       } catch (err) {
         console.error(err);
-        testSummary.textContent = "Loi tai cau hoi: " + err.message;
+        testSummary.textContent = "Lỗi tải câu hỏi: " + err.message;
       }
     }
 
@@ -1001,10 +994,11 @@
       const idx = testSession.currentIndex;
       const q = testSession.questions[idx];
 
-      testProgress.textContent = `Cau ${idx + 1} / ${testSession.questions.length}`;
+      testProgress.textContent = `Câu ${idx + 1} / ${testSession.questions.length}`;
       testQuestionEl.textContent = q.text;
-      testStandardsEl.textContent = "Chuan lien quan: " + (q.standards || []).join(", ");
+      testStandardsEl.textContent = "Chuẩn liên quan: " + (q.standards || []).join(", ");
 
+      // render options
       testOptionsEl.innerHTML = "";
       const ans = testSession.answers[idx];
       (q.options || []).forEach((opt, i) => {
@@ -1023,13 +1017,8 @@
 
       testExplainEl.value = ans.explanation || "";
 
-      if (testSession.graded && ans.isCorrect !== null) {
-        const correctness = ans.isCorrect
-          ? "Ket qua: Dung."
-          : "Ket qua: Sai. Dap an dung la " +
-            String.fromCharCode(65 + (q.correct_index ?? 0)) + ".";
-        const explanationEval = evaluateExplanationText(ans.explanation || "", ans.isCorrect);
-        testFeedbackEl.textContent = correctness + " " + explanationEval;
+      if (testSession.graded && ans.style) {
+        testFeedbackEl.textContent = feedbackFromStyle(ans, q);
       } else {
         testFeedbackEl.textContent = "";
       }
@@ -1066,163 +1055,160 @@
       }
     }
 
-    function evaluateExplanationText(text, isCorrect) {
-      const len = (text || "").length;
-      if (!text || !text.trim()) {
-        return "Em gan nhu khong trinh bay loi giai; nen tap viet lai cac buoc chinh de de kiem tra loi va duoc cham diem cao hon.";
-      }
-      if (len < 25) {
-        if (isCorrect) {
-          return "Em chon dung nhung trinh bay con rat ngan, nen ghi ro it nhat 1–2 buoc tinh chinh de hinh thanh thoi quen giai bai day du.";
-        } else {
-          return "Em co ghi chu nhung con rat ngan; nen viet ro tung buoc tinh de de nhan ra cho sai va nho nguoi khac gop y.";
-        }
-      }
-      if (len < 80) {
-        if (isCorrect) {
-          return "Cach trinh bay tam on, nhung co the them 1 buoc giai thich ly do chon cong thuc hoac cach dat an.";
-        } else {
-          return "Em trinh bay o muc vua phai; hay xem lai tung buoc, dac biet phep tinh va cach suy ra cong thuc de tim chinh xac hon.";
-        }
-      }
+    // phân loại thói quen làm bài / trình bày
+    function classifyAnswerStyle(ans, q) {
+      const expl = (ans.explanation || "").trim();
+      const explLen = expl.length;
+      const choice = ans.choice;
+      const isCorrect = choice === q.correct_index;
+
+      if (choice == null) return "blank"; // bỏ trống
+
       if (isCorrect) {
-        return "Cach trinh bay kha chi tiet, day du buoc. Neu co the, em co the rut gon mot so dong nhung van giu duoc y chinh.";
+        if (explLen < 15) return "correct_short";       // đúng nhưng trình bày rất ngắn
+        if (explLen < 40) return "correct_ok";          // đúng, trình bày vừa
+        return "correct_good";                          // đúng, trình bày chi tiết
+      } else {
+        if (explLen === 0) return "guess";              // khoanh bừa / không trình bày
+        if (explLen < 25) return "sloppy";             // trình bày ẩu
+        return "wrong_explained";                      // sai nhưng có trình bày, có cố gắng
       }
-      return "Em trinh bay kha chi tiet, nhung co the dang sai o mot vai buoc logic hoac phep tinh. Nen kiem tra lai dieu kien, buoc chuyen ve va cac so lieu.";
+    }
+
+    function feedbackFromStyle(ans, q) {
+      const style = ans.style;
+      const isCorrect = ans.choice === q.correct_index;
+      const labelCorrect = String.fromCharCode(65 + (q.correct_index ?? 0));
+
+      if (style === "blank") {
+        return "Kết quả: Chưa làm / bỏ trống. Hãy thử trình bày một hướng giải, dù chưa chắc chắn.";
+      }
+      if (style === "correct_short") {
+        return "Kết quả: Đúng nhưng trình bày còn rất ngắn. Em nên ghi rõ các bước để khi ôn tập lại dễ hiểu hơn.";
+      }
+      if (style === "correct_ok") {
+        return "Kết quả: Đúng và trình bày tạm ổn. Có thể bổ sung thêm lý do / công thức em sử dụng để bài giải mạch lạc hơn.";
+      }
+      if (style === "correct_good") {
+        return "Kết quả: Đúng và trình bày khá đầy đủ. Tiếp tục giữ thói quen này 👌";
+      }
+      if (style === "guess") {
+        return `Kết quả: Sai. Có vẻ em khoanh bừa hoặc chưa trình bày. Đáp án đúng là ${labelCorrect}. Em nên thử viết vài dòng về cách nghĩ của mình.`;
+      }
+      if (style === "sloppy") {
+        return `Kết quả: Sai và trình bày còn ẩu. Đáp án đúng là ${labelCorrect}. Hãy viết chậm lại, từng bước một, tránh bỏ qua bước quan trọng.`;
+      }
+      if (style === "wrong_explained") {
+        return `Kết quả: Sai nhưng em đã có trình bày. Đáp án đúng là ${labelCorrect}. Hãy so sánh từng bước với lời giải chuẩn để xem mình nhầm ở đâu.`;
+      }
+      return isCorrect
+        ? "Kết quả: Đúng."
+        : `Kết quả: Sai. Đáp án đúng là ${labelCorrect}.`;
     }
 
     function describeStandardLevel(total, correct) {
-      if (!total) return "Chua co cau hoi thuoc nhom nay trong bai kiem tra.";
+      if (!total) return "Chưa có câu hỏi thuộc nhóm này trong bài kiểm tra.";
       const ratio = correct / total;
       if (ratio >= 0.8) {
-        return "Manh – em lam tot phan lon cau hoi thuoc nhom chuan nay.";
+        return "Mạnh – em làm tốt hầu hết câu hỏi thuộc nhóm chuẩn này.";
       } else if (ratio >= 0.5) {
-        return "Trung binh – em nam duoc mot phan, nen luyen them de vung hon.";
+        return "Trung bình – em đã nắm được một phần, nên luyện thêm để vững hơn.";
       }
-      return "Can cung co – nen on lai ly thuyet va lam them bai tap minh hoa.";
+      return "Cần củng cố – nên ôn lại lý thuyết và làm thêm bài tập minh họa.";
     }
 
-    function overallText(total, correct, explanationStats) {
+    function overallText(total, correct) {
       if (!total) {
-        return "Chua co du du lieu de danh gia.";
+        return "Chưa có đủ dữ liệu để đánh giá.";
       }
       const ratio = correct / total;
-      let base;
       if (ratio >= 0.8) {
-        base = "Ket qua cho thay em dang lam kha tot bai kiem tra nay. Co the bat dau luyen cac dang bai nang cao va duy tri on tap cac chu de da vung.";
+        return "Kết quả cho thấy em đang làm khá tốt bài kiểm tra này. Em có thể bắt đầu luyện các dạng bài nâng cao, đồng thời ôn lại nhanh các dạng cơ bản để giữ phong độ.";
       } else if (ratio >= 0.5) {
-        base = "Ket qua o muc trung binh. Em da nam duoc mot phan kien thuc nhung van can luyen them mot so dang bai de chac hon.";
-      } else {
-        base = "Ket qua cho thay em can tap trung cung co lai cac kien thuc co ban, nen xem lai ly thuyet va lam them bai tap mau cho tung chuan.";
+        return "Kết quả ở mức trung bình. Em đã nắm được một phần kiến thức nhưng vẫn cần luyện thêm một số dạng bài cơ bản, làm bài chậm lại và kiểm tra cẩn thận từng bước.";
       }
-
-      if (explanationStats) {
-        const { blankAnswers, noExplanation, shortExplanation } = explanationStats;
-        const extraParts = [];
-        if (blankAnswers > 0) {
-          extraParts.push(`Co ${blankAnswers} cau em de trong hoan toan (khong chon dap an va khong trinh bay). Nen thu lam ca khi chua chac chan de phat hien diem yeu.`);
-        }
-        if (noExplanation > 0) {
-          extraParts.push(`Co ${noExplanation} cau em chi chon dap an ma khong viet loi giai. De ren thoi quen lam bai thi, em nen tap trinh bay it nhat 1–2 buoc chinh.`);
-        }
-        if (shortExplanation > 0) {
-          extraParts.push(`Mot so cau em trinh bay rat ngan (${shortExplanation} cau). Hay co gang viet ro them mot buoc tinh hoac giai thich ly do chon cong thuc.`);
-        }
-        if (extraParts.length) {
-          base += " " + extraParts.join(" ");
-        }
-      }
-      return base;
+      return "Kết quả cho thấy em cần tập trung củng cố lại các kiến thức cơ bản, nên xem lại lý thuyết trong SGK, vở ghi và làm thêm bài tập mẫu cho từng chuẩn T1–T15.";
     }
 
-    function buildScheduleFromResults(perStandard, explanationStats) {
-      const codes = Object.keys(STANDARD_LABELS);
-      const ordered = codes.map(code => {
-        const info = perStandard[code] || { total: 0, correct: 0 };
-        const ratio = info.total ? info.correct / info.total : 0.6; // khong co du lieu: xem nhu trung binh
+    function buildPresentationSummary(styleStats, totalQuestions) {
+      if (!totalQuestions || !styleStats) {
+        return "Chưa đủ thông tin để đánh giá thói quen trình bày.";
+      }
+      const get = k => styleStats[k] || 0;
+      const blank = get("blank");
+      const guess = get("guess");
+      const sloppy = get("sloppy");
+      const correctShort = get("correct_short");
+      const correctOk = get("correct_ok");
+      const correctGood = get("correct_good");
+      const wrongExplained = get("wrong_explained");
+
+      const lines = [];
+
+      if (correctGood + correctOk > 0) {
+        lines.push(
+          `Có ${correctGood + correctOk}/${totalQuestions} câu em trình bày tương đối rõ ràng. Đây là điểm mạnh, hãy tiếp tục giữ thói quen ghi đủ các bước.`
+        );
+      }
+      if (correctShort > 0) {
+        lines.push(
+          `Một số câu đúng (${correctShort} câu) nhưng trình bày còn quá ngắn. Em nên viết thêm lý do hoặc công thức để khi xem lại không bị quên cách làm.`
+        );
+      }
+      if (blank + guess > 0) {
+        lines.push(
+          `Có ${blank + guess} câu em bỏ trống hoặc chỉ khoanh đáp án mà không trình bày. Hãy cố gắng viết ra suy nghĩ của mình, kể cả khi chưa chắc chắn.`
+        );
+      }
+      if (sloppy + wrongExplained > 0) {
+        lines.push(
+          `${sloppy + wrongExplained} câu sai nhưng vẫn có trình bày. Em nên so sánh lại với lời giải chuẩn để tìm chính xác bước mình nhầm, từ đó rút kinh nghiệm.`
+        );
+      }
+
+      if (!lines.length) {
+        lines.push("Thói quen trình bày hiện tại chưa rõ ràng, cần thêm dữ liệu để đánh giá.");
+      }
+      return lines.join(" ");
+    }
+
+    function buildQuarterPlan(perStandard) {
+      const codes = Object.keys(perStandard || {});
+      if (!codes.length) {
+        return [
+          "Chưa có dữ liệu đủ rõ để lập lịch học chi tiết. Em có thể bắt đầu ôn lại lần lượt từ T1 đến T5, mỗi ngày làm 3–5 bài tập cơ bản và nhờ Trợ lý Toán AI giải chi tiết các câu sai."
+        ];
+      }
+
+      const items = codes.map(code => {
+        const info = perStandard[code];
+        const ratio = info.total ? info.correct / info.total : 0;
         return { code, ratio, total: info.total };
       }).sort((a, b) => a.ratio - b.ratio);
 
-      const weak = ordered.slice(0, 5).map(x => x.code);
-      const mid = ordered.slice(5, 10).map(x => x.code);
-      const strong = ordered.slice(10).map(x => x.code);
+      // lấy tối đa 4 chuẩn yếu nhất để tập trung
+      const focus = items.slice(0, 4);
+      const focusCodes = focus.map(i => i.code);
+      if (!focusCodes.length) focusCodes.push("T1", "T2", "T3");
 
-      function pickOrFallback(list, idx, fallback) {
-        if (idx < list.length) return list[idx];
-        if (fallback < ordered.length) return ordered[fallback].code;
-        return "T1";
+      const lines = [];
+      const WEEK_PER_MONTH = 4;
+      const TOTAL_WEEKS = 12;
+
+      for (let w = 1; w <= TOTAL_WEEKS; w++) {
+        const month = Math.floor((w - 1) / WEEK_PER_MONTH) + 1; // 1..3
+        const weekInMonth = ((w - 1) % WEEK_PER_MONTH) + 1;    // 1..4
+        const code = focusCodes[(w - 1) % focusCodes.length];
+        const label = STANDARD_LABELS[code] || ("Chuẩn " + code);
+
+        lines.push(
+          `Tháng ${month}, tuần ${weekInMonth}: Tập trung vào ${code} – ${label}. ` +
+          "Ôn lại lý thuyết trong SGK, vở ghi; làm 3–5 bài tập tiêu biểu; sau đó nhờ Trợ lý Toán AI giải chi tiết các câu em làm sai. " +
+          "Tài liệu gợi ý: SGK Toán 9, SBT Toán 9, tìm video \"Toán 9 " + label + "\" trên YouTube để xem thêm ví dụ minh họa."
+        );
       }
 
-      const month1 = {
-        title: "Thang 1 – Tap trung vao cac chuan yeu nhat",
-        rows: []
-      };
-      const month2 = {
-        title: "Thang 2 – On lai chuan yeu + trung binh",
-        rows: []
-      };
-      const month3 = {
-        title: "Thang 3 – Cung co chuan trung binh + manh",
-        rows: []
-      };
-
-      function cellText(code, levelLabel) {
-        const label = STANDARD_LABELS[code] || ("Chuan " + code);
-        const info = STANDARD_RESOURCES[code] || [];
-        const res1 = info[0] || "SGK Toan 9";
-        const res2 = info[1] || "Tim video luyen tap phu hop tren YouTube";
-        return `${code} – ${label}: ${levelLabel}. Bai tap: lam 3–5 bai tap co ban hoac van dung; co the them 1 bai toan thuc te neu co. Tai lieu: ${res1}; ${res2}.`;
-      }
-
-      // Tháng 1: chủ yếu weak
-      for (let r = 0; r < 4; r++) {
-        const row = [];
-        row.push(cellText(pickOrFallback(weak, 0, 0), "On lai ly thuyet & cong thuc chinh")); // T2
-        row.push(cellText(pickOrFallback(weak, 1, 1), "Lam 3–5 bai tap co ban"));            // T3
-        row.push(cellText(pickOrFallback(weak, 2, 2), "Lam 3–5 bai tap van dung"));          // T4
-        row.push(cellText(pickOrFallback(weak, 3, 3), "Lam 1 bai toan thuc te hoac tong hop")); // T5
-        row.push(cellText(pickOrFallback(weak, 4, 4), "On lai ly thuyet & lam 3 bai tap mau")); // T6
-        row.push(cellText(pickOrFallback(mid, 0, 5), "Lam 3–5 bai tap co ban"));              // T7
-        row.push("Nghi hoac tong ket tuan: xem lai cac cau lam sai, ghi chu cac loi thuong gap va hoi Tro ly Toan AI giai chi tiet.");
-        month1.rows.push(row);
-      }
-
-      // Tháng 2: weak + mid + them T15
-      for (let r = 0; r < 4; r++) {
-        const row = [];
-        row.push(cellText(pickOrFallback(weak, r % weak.length, 0), "On lai ly thuyet & cong thuc chinh")); // T2
-        row.push(cellText(pickOrFallback(mid, 0, 5), "Lam 3–5 bai tap co ban"));                           // T3
-        row.push(cellText(pickOrFallback(mid, 1, 6), "Lam 3–5 bai tap van dung"));                         // T4
-        row.push(cellText(pickOrFallback(mid, 2, 7), "Lam 1 bai tong hop hoac luyen de thi"));             // T5
-        row.push(cellText(pickOrFallback(mid, 3, 8), "On lai ly thuyet & lam 3 bai tap mau"));             // T6
-        row.push(cellText(pickOrFallback(["T15"], 0, 0), "Lam 2–3 bai toan thuc te gan voi cuoc song"));   // T7
-        row.push("Tong ket tuan: danh dau cac chuan da tien bo va chuan van yeu; dieu chinh ke hoach neu can.");
-        month2.rows.push(row);
-      }
-
-      // Tháng 3: mid + strong
-      const combined = mid.concat(strong);
-      for (let r = 0; r < 4; r++) {
-        const row = [];
-        row.push(cellText(pickOrFallback(combined, 0, 0), "On lai ly thuyet & cong thuc chinh")); // T2
-        row.push(cellText(pickOrFallback(combined, 1, 1), "Lam 3–5 bai tap co ban"));             // T3
-        row.push(cellText(pickOrFallback(combined, 2, 2), "Lam 3–5 bai tap van dung & nang cao"));// T4
-        row.push(cellText(pickOrFallback(combined, 3, 3), "Lam 1 de on tap tong hop nho nhap vai de thi")); // T5
-        row.push(cellText(pickOrFallback(combined, 4, 4), "On lai ly thuyet bang so do tu duy hoac flashcard")); // T6
-        row.push(cellText(pickOrFallback(combined, 5, 5), "Lam 3–5 bai tap tong hop co ket hop nhieu chuan"));    // T7
-        row.push("Cuoi tuan: lam lai 1 bai kiem tra tu tao (10 cau), sau do nhap vao he thong de Tro ly Toan AI phan tich loi sai.");
-        month3.rows.push(row);
-      }
-
-      // Chu ky ngan (ngay 1–4) – dung cho muc "Lich hoc tong quan"
-      const cycle = [
-        "Ngay 1: Chon 1–2 chuan yeu nhat, on lai ly thuyet & cong thuc. Lam 3–5 bai tap co ban.",
-        "Ngay 2: Lam 3–5 bai tap van dung cho cac chuan do; neu du thoi gian lam 1 bai toan thuc te nho.",
-        "Ngay 3: On lai cac cau lam sai, ghi chu ly do sai. Nho Tro ly Toan AI giai ki cac cau kho.",
-        "Ngay 4: Lam 1 bai kiem tra nho (5–8 cau), tu cham & so sanh voi huong dan, dieu chinh ke hoach on tap."
-      ];
-
-      return { month1, month2, month3, cycle };
+      return lines;
     }
 
     function gradeCurrentTest() {
@@ -1233,28 +1219,17 @@
       let correct = 0;
       const perStandard = {};
       const results = [];
-
-      const explanationStats = {
-        blankAnswers: 0,
-        noExplanation: 0,
-        shortExplanation: 0,
-        detailedExplanation: 0
-      };
+      const styleStats = {};
 
       questions.forEach((q, idx) => {
         const ans = answers[idx];
         const isCorrect = ans.choice === q.correct_index;
         ans.isCorrect = isCorrect;
 
-        if (ans.choice === null && (!ans.explanation || !ans.explanation.trim())) {
-          explanationStats.blankAnswers++;
-        } else if (!ans.explanation || !ans.explanation.trim()) {
-          explanationStats.noExplanation++;
-        } else if (ans.explanation.trim().length < 40) {
-          explanationStats.shortExplanation++;
-        } else {
-          explanationStats.detailedExplanation++;
-        }
+        // phân loại style
+        const style = classifyAnswerStyle(ans, q);
+        ans.style = style;
+        styleStats[style] = (styleStats[style] || 0) + 1;
 
         if (isCorrect) correct++;
 
@@ -1270,30 +1245,31 @@
           choice: ans.choice,
           explanation: ans.explanation,
           standards: q.standards || [],
-          isCorrect
+          isCorrect,
+          style
         });
       });
 
       testSession.graded = true;
       testSession.perStandard = perStandard;
       testSession.correctCount = correct;
-      testSession.explanationStats = explanationStats;
+      testSession.styleStats = styleStats;
 
       const modeLabel =
-        testSession.mode === "input" ? "dau vao"
-          : testSession.mode === "output" ? "dau ra"
-          : "quiz luyen tap";
+        testSession.mode === "input" ? "đầu vào"
+          : testSession.mode === "output" ? "đầu ra"
+          : "quiz luyện tập";
 
       testSummary.textContent =
-        `Da cham xong bai ${modeLabel}. Hay xem lai tung cau, sau do xuat PDF de lay bao cao & ke hoach chi tiet.`;
+        `Đã chấm xong bài ${modeLabel}. Hãy xem lại từng câu, chú ý cả đáp án và cách trình bày, sau đó xuất PDF để lấy báo cáo & kế hoạch học theo quý.`;
 
       lastTestResults = {
         mode: testSession.mode,
         totalQuestions: questions.length,
-        correct,
+        correctCount: correct,
         perStandard,
         results,
-        explanationStats
+        styleStats
       };
 
       exportPdfBtn.disabled = questions.length === 0;
@@ -1301,12 +1277,17 @@
 
       renderCurrentTestQuestion();
 
+      // Đẩy 1 tóm tắt vào cuộc trò chuyện hiện tại
       const conv = getCurrentConversation();
-      const weakStandards = Object.keys(perStandard).filter(c => {
+      const weakCodes = Object.keys(perStandard).filter(c => {
         const info = perStandard[c];
         return info.total && info.correct / info.total < 0.8;
       });
-      const summaryLine = `Tom tat bai ${modeLabel}: em lam dung ${correct}/${questions.length} cau. Cac chuan can chu y them: ${weakStandards.join(", ") || "chua ro"}.\nHe thong cung da tao ke hoach on tap 1 quy trong bao cao PDF.`;
+      const summaryLine =
+        `Tóm tắt bài ${modeLabel}: em làm đúng ${correct}/${questions.length} câu. ` +
+        (weakCodes.length
+          ? `Một số chuẩn cần chú ý thêm: ${weakCodes.join(", ")}.`
+          : "Hiện chưa thấy chuẩn nào quá yếu, em vẫn nên ôn lại toàn bộ T1–T15 để giữ phong độ.");
       conv.messages.push({
         role: "assistant",
         content: summaryLine
@@ -1317,65 +1298,83 @@
     function exportPdfReport() {
       if (!lastTestResults) return;
       if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("Khong tai duoc thu vien xuat PDF (jsPDF).");
+        alert("Không tải được thư viện xuất PDF (jsPDF).");
         return;
       }
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: "pt", format: "a4" });
 
-      // Luu y: core font cua jsPDF khong ho tro dau tieng Viet day du,
-      // nen file PDF se bi bo dau (khong phai loi code, ma la gioi han thu vien).
-      // De dung font Unicode, can nhung TTF rieng va sua file fontconverter.
-      doc.setFont("helvetica", "normal");
+      // set font tiếng Việt
+      try {
+        doc.setFont("segoeuithis", "normal");
+      } catch (e) {
+        // nếu font custom lỗi, fallback helvetica (sẽ mất dấu)
+        doc.setFont("helvetica", "normal");
+      }
 
       const s = lastTestResults;
       let y = 40;
       const maxWidth = 500;
       const modeLabel =
-        s.mode === "input" ? "dau vao"
-          : s.mode === "output" ? "dau ra"
-          : "quiz luyen tap";
+        s.mode === "input" ? "đầu vào"
+          : s.mode === "output" ? "đầu ra"
+          : "quiz luyện tập";
 
+      // Tiêu đề
       doc.setFontSize(14);
       doc.text(
-        `Bao cao & ke hoach hoc – Bai ${modeLabel} T1–T15 – K9 Math AI Assistant`,
+        `Báo cáo & kế hoạch học theo quý – Bài ${modeLabel} T1–T15 – K9 Math AI Assistant`,
         40,
         y
       );
 
+      // Thời gian
       y += 20;
       doc.setFontSize(11);
-      doc.text("Thoi gian: " + new Date().toLocaleString(), 40, y);
+      doc.text("Thời gian: " + new Date().toLocaleString("vi-VN"), 40, y);
 
-      // 1. Danh gia tong quan
+      // 1. Đánh giá tổng quan
       y += 24;
       doc.setFontSize(11);
-      doc.text("1. Danh gia tong quan", 40, y);
+      doc.text("1. Đánh giá tổng quan", 40, y);
       y += 14;
       doc.setFontSize(10);
       const overallLines = doc.splitTextToSize(
-        overallText(s.totalQuestions, s.correct, s.explanationStats),
+        overallText(s.totalQuestions, s.correctCount),
         maxWidth
       );
       doc.text(overallLines, 40, y);
       y += overallLines.length * 12;
 
-      // 2. Danh gia theo tung nhom chuan
+      // 1b. Thói quen trình bày
+      y += 12;
+      doc.setFontSize(11);
+      doc.text("1.b. Nhận xét về thói quen trình bày", 40, y);
+      y += 14;
+      doc.setFontSize(10);
+      const presentLines = doc.splitTextToSize(
+        buildPresentationSummary(s.styleStats, s.totalQuestions),
+        maxWidth
+      );
+      doc.text(presentLines, 40, y);
+      y += presentLines.length * 12;
+
+      // 2. Đánh giá theo từng chuẩn
       y += 16;
       doc.setFontSize(11);
-      doc.text("2. Danh gia theo tung nhom chuan", 40, y);
+      doc.text("2. Đánh giá theo từng nhóm chuẩn T1–T15", 40, y);
       y += 14;
       doc.setFontSize(10);
 
       const codes = Object.keys(s.perStandard || {}).sort();
       if (!codes.length) {
-        doc.text("Chua co du du lieu de phan tich theo chuan.", 40, y);
+        doc.text("Chưa có dữ liệu đủ rõ để phân tích theo chuẩn.", 40, y);
         y += 14;
       } else {
         codes.forEach(code => {
           const info = s.perStandard[code];
-          const line = `${code} – ${(STANDARD_LABELS[code] || "Chuan " + code)}: ${describeStandardLevel(info.total, info.correct)}`;
+          const line = `${code} – ${(STANDARD_LABELS[code] || "Chuẩn " + code)}: ${describeStandardLevel(info.total, info.correct)}`;
           const wrapped = doc.splitTextToSize(line, maxWidth);
           if (y + wrapped.length * 12 > 770) {
             doc.addPage();
@@ -1386,38 +1385,15 @@
         });
       }
 
-      // 3. Nhan xet ve cach trinh bay & thoi quen lam bai
+      // 3. Kế hoạch học theo quý (3 tháng, ~12 tuần)
       y += 16;
       doc.setFontSize(11);
-      doc.text("3. Nhan xet ve cach trinh bay & thoi quen lam bai", 40, y);
+      doc.text("3. Kế hoạch học theo quý (3 tháng, 12 tuần)", 40, y);
       y += 14;
       doc.setFontSize(10);
 
-      const es = s.explanationStats || {};
-      const expLines = [];
-      expLines.push(`So cau bo trong hoan toan: ${es.blankAnswers || 0}.`);
-      expLines.push(`So cau chi chon dap an, khong viet loi giai: ${es.noExplanation || 0}.`);
-      expLines.push(`So cau trinh bay rat ngan: ${es.shortExplanation || 0}.`);
-      expLines.push(`So cau trinh bay chi tiet hon: ${es.detailedExplanation || 0}.`);
-      const expWrapped = doc.splitTextToSize(
-        expLines.join(" "),
-        maxWidth
-      );
-      if (y + expWrapped.length * 12 > 770) {
-        doc.addPage();
-        y = 40;
-      }
-      doc.text(expWrapped, 40, y);
-      y += expWrapped.length * 12;
-
-      // 4. Lich hoc tong quan theo chu ky ngan
-      const scheduleAll = buildScheduleFromResults(s.perStandard || {}, s.explanationStats || {});
-      y += 16;
-      doc.setFontSize(11);
-      doc.text("4. Lich hoc tong quan (chu ky 4 ngay)", 40, y);
-      y += 14;
-      doc.setFontSize(10);
-      scheduleAll.cycle.forEach(line => {
+      const scheduleLines = buildQuarterPlan(s.perStandard || {});
+      scheduleLines.forEach(line => {
         const wrapped = doc.splitTextToSize(line, maxWidth);
         if (y + wrapped.length * 12 > 770) {
           doc.addPage();
@@ -1426,50 +1402,6 @@
         doc.text(wrapped, 40, y);
         y += wrapped.length * 12;
       });
-
-      // 5. Ke hoach chi tiet 1 quy (3 thang, dang bang)
-      function drawMonthTable(monthData, monthIndex) {
-        if (!monthData) return;
-        if (y > 700) {
-          doc.addPage();
-          y = 40;
-        }
-        doc.setFontSize(11);
-        doc.text(`5.${monthIndex} ${monthData.title}`, 40, y);
-        y += 14;
-        doc.setFontSize(10);
-        const headers = "T2 | T3 | T4 | T5 | T6 | T7 | CN";
-        doc.text(headers, 40, y);
-        y += 12;
-
-        monthData.rows.forEach((row, rIdx) => {
-          if (y > 760) {
-            doc.addPage();
-            y = 40;
-          }
-          doc.text(`Tuan ${rIdx + 1}:`, 40, y);
-          y += 12;
-          for (let c = 0; c < row.length; c++) {
-            const colLabel = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"][c] || "";
-            const text = `${colLabel}: ${row[c]}`;
-            const wrapped = doc.splitTextToSize(text, maxWidth);
-            if (y + wrapped.length * 12 > 770) {
-              doc.addPage();
-              y = 40;
-            }
-            doc.text(wrapped, 60, y);
-            y += wrapped.length * 12;
-          }
-          y += 6;
-        });
-      }
-
-      y += 16;
-      drawMonthTable(scheduleAll.month1, 1);
-      y += 10;
-      drawMonthTable(scheduleAll.month2, 2);
-      y += 10;
-      drawMonthTable(scheduleAll.month3, 3);
 
       doc.save(`Bao_cao_${modeLabel.replace(" ", "_")}_T1-T15.pdf`);
     }
