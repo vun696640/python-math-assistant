@@ -5,10 +5,10 @@ from typing import List, Dict
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pypdf import PdfReader
 from openai import OpenAI
+from fastapi.staticfiles import StaticFiles
 
 # ========================
 #  CONFIG
@@ -19,7 +19,7 @@ INDEX_FILE = os.path.join(BASE_DIR, "index.html")
 
 app = FastAPI(title="Math AI Assistant")
 
-# serve /static cho jsPDF, v.v.
+# phục vụ /static (jspdf + font)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
@@ -179,21 +179,21 @@ def detect_standards_from_text(text: str) -> List[str]:
     found: List[str] = []
 
     KEYWORDS = {
-        "T1": ["ucln", "bcnn", "lũy thừa", "so mu", "luy thua"],
-        "T2": ["phần trăm", "%", "ti le", "ty le", "giam gia"],
-        "T3": ["goc", "tam giac", "chung minh"],
-        "T4": ["can bac hai", "can bac 2", "sqrt"],
-        "T5": ["phuong trinh bac nhat", "pt bac nhat"],
-        "T6": ["he phuong trinh", "hpt"],
-        "T7": ["bat phuong trinh"],
-        "T8": ["ham so", "do thi", "graph"],
-        "T9": ["tam giac vuong", "pytago", "pythagore"],
-        "T10": ["duong tron", "cung", "goc noi tiep"],
-        "T11": ["tiep tuyen"],
-        "T12": ["hinh tru", "hinh non", "hinh cau"],
-        "T13": ["tan so", "bang tan so", "thong ke"],
-        "T14": ["xac suat"],
-        "T15": ["bai toan thuc te", "thuc te", "boi canh thuc te"],
+        "T1": ["ucln", "bcnn", "lũy thừa", "số mũ", "luy thua"],
+        "T2": ["phần trăm", "%", "tỉ lệ", "tỷ lệ", "giảm giá"],
+        "T3": ["góc", "tam giác", "chứng minh", "tam giac"],
+        "T4": ["căn bậc hai", "căn bậc 2", "sqrt"],
+        "T5": ["phương trình bậc nhất", "pt bậc nhất"],
+        "T6": ["hệ phương trình", "hpt"],
+        "T7": ["bất phương trình"],
+        "T8": ["hàm số", "đồ thị", "graph"],
+        "T9": ["tam giác vuông", "pytago", "pythagore"],
+        "T10": ["đường tròn", "cung", "góc nội tiếp"],
+        "T11": ["tiếp tuyến"],
+        "T12": ["hình trụ", "hình nón", "hình cầu"],
+        "T13": ["tần số", "bảng tần số", "thống kê"],
+        "T14": ["xác suất"],
+        "T15": ["bài toán thực tế", "thực tế", "bối cảnh thực tế"],
     }
 
     for code, keywords in KEYWORDS.items():
@@ -277,15 +277,16 @@ async def api_classify(req: ClassifyRequest):
 
 
 # ========================
-#  QUIZ ĐẦU VÀO / ĐẦU RA – RANDOM TỪ NGÂN HÀNG
+#  QUIZ ĐẦU VÀO / ĐẦU RA – NGÂN HÀNG CÂU HỎI + RANDOM
 # ========================
 
+# Ngân hàng câu hỏi đầu vào
 INPUT_QUESTION_BANK: List[QuizQuestion] = [
     QuizQuestion(
         id=1,
         text="Kết quả của 2^3 · 2^2, viết dưới dạng lũy thừa của 2, là:",
         options=["2^5", "2^6", "10", "32"],
-        correct_index=0,
+        correct_index=0,  # 2^(3+2) = 2^5
         standards=["T1"],
     ),
     QuizQuestion(
@@ -306,7 +307,7 @@ INPUT_QUESTION_BANK: List[QuizQuestion] = [
         id=4,
         text="Căn bậc hai số học (căn không âm) của 81 là:",
         options=["±9", "9", "–9", "8"],
-        correct_index=1,
+        correct_index=1,  # số học => 9
         standards=["T4"],
     ),
     QuizQuestion(
@@ -371,6 +372,7 @@ INPUT_QUESTION_BANK: List[QuizQuestion] = [
     ),
 ]
 
+# Ngân hàng câu hỏi đầu ra
 OUTPUT_QUESTION_BANK: List[QuizQuestion] = [
     QuizQuestion(
         id=101,
@@ -475,18 +477,16 @@ OUTPUT_QUESTION_BANK: List[QuizQuestion] = [
 
 
 def _pick_random_questions(bank: List[QuizQuestion], n: int = 10) -> List[QuizQuestion]:
-    """
-    Chọn ngẫu nhiên tối đa n câu hỏi từ ngân hàng, lọc chuẩn hợp lệ.
-    Mỗi lần làm test sẽ có bộ đề hơi khác nhau, tránh học thuộc đáp án.
-    """
+    """Chọn ngẫu nhiên tối đa n câu hỏi từ ngân hàng, đồng thời lọc chuẩn hợp lệ."""
     if not bank:
         return []
 
     if len(bank) <= n:
-        chosen = bank[:]
+        chosen = bank[:]  # copy
     else:
         chosen = random.sample(bank, n)
 
+    # Tạo bản sao để không sửa trực tiếp ngân hàng gốc
     result: List[QuizQuestion] = []
     for q in chosen:
         filtered_standards = [s for s in q.standards if s in STANDARDS]
