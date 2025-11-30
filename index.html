@@ -482,7 +482,7 @@
     }
   </style>
 
-  <!-- jsPDF dùng để xuất PDF (UMD) -->
+  <!-- jsPDF dùng để xuất PDF – bản UMD, dùng window.jspdf.jsPDF -->
   <script src="/static/js/jspdf.umd.min.js"></script>
 
   <!-- MathJax -->
@@ -640,21 +640,36 @@
     const API_BASE = "";
 
     const STANDARD_LABELS = {
-      T1: "Số & lũy thừa",
-      T2: "Tỉ lệ & phần trăm",
-      T3: "Góc & tam giác",
-      T4: "Căn bậc hai",
-      T5: "Phương trình bậc nhất",
-      T6: "Hệ phương trình",
-      T7: "Bất phương trình",
-      T8: "Hàm số & đồ thị",
-      T9: "Tam giác vuông & định lý Pytago",
-      T10: "Đường tròn",
-      T11: "Tiếp tuyến",
-      T12: "Hình trụ, nón, cầu",
-      T13: "Thống kê",
-      T14: "Xác suất",
-      T15: "Bài toán thực tế"
+      T1: "So & luy thua",
+      T2: "Ti le & phan tram",
+      T3: "Goc & tam giac",
+      T4: "Can bac hai",
+      T5: "Phuong trinh bac nhat",
+      T6: "He phuong trinh",
+      T7: "Bat phuong trinh",
+      T8: "Ham so & do thi",
+      T9: "Tam giac vuong & dinh ly Pytago",
+      T10: "Duong tron",
+      T11: "Tiep tuyen",
+      T12: "Hinh tru, non, cau",
+      T13: "Thong ke",
+      T14: "Xac suat",
+      T15: "Bai toan thuc te"
+    };
+
+    // Gợi ý tài liệu (hardcode, giả lập “tìm kiếm tham khảo”)
+    const STANDARD_RESOURCES = {
+      T1: ["SGK Toan 9 tap 1, Bai luy thua", "Tim video 'Luy thua lop 9' tren YouTube"],
+      T2: ["SGK Toan 9 tap 1, Bai ti le phan tram", "Tim video 'Bai tap phan tram lop 9'"],
+      T3: ["SGK Toan 9 tap 1, Chuong goc & tam giac", "Tim video 'Chung minh tam giac lop 9'"],
+      T4: ["SGK Toan 9 tap 1, Bai can bac hai", "Tim video 'Can bac hai lop 9'"],
+      T5: ["SGK Toan 9 tap 2, Bai phuong trinh bac nhat", "Tim video 'Phuong trinh bac nhat lop 9'"],
+      T6: ["SGK Toan 9 tap 2, Bai he phuong trinh", "Tim video 'He phuong trinh lop 9'"],
+      T7: ["SGK Toan 9 tap 2, Bai bat phuong trinh", "Tim video 'Bat phuong trinh lop 9'"],
+      T8: ["SGK Toan 9 tap 2, Bai ham so & do thi", "Tim video 'Ham so bac nhat lop 9'"],
+      T9: ["SGK Toan 9 tap 1, Bai dinh ly Pytago", "Tim video 'Dinh ly Pytago lop 9'"],
+      T12:["SGK Toan 9 tap 2, Bai hinh tru-non-cau", "Tim video 'The tich hinh tru non cau'"],
+      T15:["SGK Toan 9, cac bai tap thuc te", "Tim video 'Bai toan thuc te lop 9'"]
     };
 
     // === STATE CHAT ===
@@ -698,37 +713,15 @@
 
     let testMode = "input"; // input | output | quiz
     let testQuestions = [];
-    let testSession = null; // {mode, questions, answers, currentIndex, graded, perStandard, correctCount, total}
-    let lastTestResults = null; // dùng cho xuất PDF
-
-    // ===== Utils =====
-    function stripVietnamese(str) {
-      if (!str) return "";
-      try {
-        return str
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/Đ/g, "D")
-          .replace(/đ/g, "d");
-      } catch (e) {
-        // fallback nếu browser lạ
-        return str;
-      }
-    }
-
-    const ACTIONS = [
-      "Ôn lại lý thuyết & công thức chính.",
-      "Làm 3–5 bài tập cơ bản.",
-      "Làm 3–5 bài tập vận dụng.",
-      "Làm 1 bài toán thực tế hoặc tổng hợp."
-    ];
+    let testSession = null; // {mode, questions, answers, currentIndex, graded, perStandard, correctCount, total, explanationStats}
+    let lastTestResults = null; // cho PDF
 
     // ===== CHAT =====
     function createNewConversation() {
       const id = "chat-" + Date.now();
       conversations[id] = {
         id,
-        title: "Cuộc trò chuyện " + chatCounter++,
+        title: "Cuoc tro chuyen " + chatCounter++,
         messages: [],
         standards: []
       };
@@ -766,7 +759,7 @@
           const first = conv.messages[0].content || "";
           sub.textContent = first.slice(0, 32) + (first.length > 32 ? "…" : "");
         } else {
-          sub.textContent = "Chưa có nội dung";
+          sub.textContent = "Chua co noi dung";
         }
         div.appendChild(title);
         div.appendChild(sub);
@@ -784,7 +777,7 @@
         intro.style.maxWidth = "480px";
         intro.style.margin = "40px auto 0";
         intro.style.textAlign = "center";
-        intro.innerHTML = "Chào bạn 👋<br>Hãy đặt câu hỏi Toán 9, tải file bài tập, hoặc nhờ mình phân tích lỗi sai theo chuẩn T1–T15.";
+        intro.innerHTML = "Chao ban 👋<br>Hay dat cau hoi Toan 9, tai file bai tap, hoac nho minh phan tich loi sai theo chuan T1–T15.";
         messagesEl.appendChild(intro);
       } else {
         conv.messages.forEach(msg => {
@@ -800,7 +793,7 @@
           avatar.textContent = msg.role === "assistant" ? "AI" : "You";
 
           const metaText = document.createElement("span");
-          metaText.textContent = msg.role === "assistant" ? "Trợ lý Toán AI" : "Bạn";
+          metaText.textContent = msg.role === "assistant" ? "Tro ly Toan AI" : "Ban";
 
           meta.appendChild(avatar);
           meta.appendChild(metaText);
@@ -843,7 +836,7 @@
       conv.messages.push({ role: "user", content: text });
       inputEl.value = "";
       renderMessages();
-      statusLine.textContent = "Đang suy nghĩ…";
+      statusLine.textContent = "Dang suy nghi…";
       statusLine.classList.remove("error");
       sendBtn.disabled = true;
 
@@ -866,7 +859,7 @@
         statusLine.textContent = "";
       } catch (err) {
         console.error(err);
-        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
+        statusLine.textContent = "Khong goi duoc API /chat/message. Kiem tra server.";
         statusLine.classList.add("error");
       } finally {
         sendBtn.disabled = false;
@@ -876,7 +869,7 @@
     async function sendHistoryOnly() {
       const conv = getCurrentConversation();
       if (!conv.messages.length) return;
-      statusLine.textContent = "Đang phân tích…";
+      statusLine.textContent = "Dang phan tich…";
       statusLine.classList.remove("error");
       sendBtn.disabled = true;
 
@@ -899,7 +892,7 @@
         statusLine.textContent = "";
       } catch (err) {
         console.error(err);
-        statusLine.textContent = "Không gọi được API /chat/message. Kiểm tra server.";
+        statusLine.textContent = "Khong goi duoc API /chat/message. Kiem tra server.";
         statusLine.classList.add("error");
       } finally {
         sendBtn.disabled = false;
@@ -913,7 +906,7 @@
       if (!file) return;
 
       const conv = getCurrentConversation();
-      statusLine.textContent = "Đang đọc file " + file.name + "…";
+      statusLine.textContent = "Dang doc file " + file.name + "…";
       statusLine.classList.remove("error");
 
       const formData = new FormData();
@@ -927,9 +920,9 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         const snippet = data.content.length > 600
-          ? data.content.slice(0, 600) + "\n[...đã cắt bớt...]"
+          ? data.content.slice(0, 600) + "\n[...da cat bot...]"
           : data.content;
-        const text = `Nội dung trích từ file "${data.filename}":\n\n` + snippet;
+        const text = `Noi dung trich tu file "${data.filename}":\n\n` + snippet;
 
         conv.messages.push({ role: "user", content: text });
         renderMessages();
@@ -937,18 +930,18 @@
         await sendHistoryOnly();
       } catch (err) {
         console.error(err);
-        statusLine.textContent = "Không đọc được file. Kiểm tra /file/parse.";
+        statusLine.textContent = "Khong doc duoc file. Kiem tra /file/parse.";
         statusLine.classList.add("error");
       } finally {
         fileInput.value = "";
       }
     });
 
-    // ===== TEST / QUIZ (theo kiểu "trình riêng") =====
+    // ===== TEST / QUIZ (trinh rieng) =====
     function openTestPanel(mode) {
       testMode = mode || "input";
       testPanel.style.display = "flex";
-      testSummary.textContent = "Đang tải câu hỏi…";
+      testSummary.textContent = "Dang tai cau hoi…";
       exportPdfBtn.disabled = true;
       exportPdfGlobalBtn.disabled = true;
       testQuestions = [];
@@ -972,33 +965,34 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         testQuestions = data.questions || [];
-        if (!testQuestions.length) throw new Error("Không có câu hỏi.");
+        if (!testQuestions.length) throw new Error("Khong co cau hoi.");
 
         if (testMode === "quiz") {
-          testPanelTitle.textContent = "Quiz luyện tập T1–T15";
+          testPanelTitle.textContent = "Quiz luyen tap T1–T15";
         } else if (testMode === "input") {
-          testPanelTitle.textContent = "Bài kiểm tra đầu vào T1–T15";
+          testPanelTitle.textContent = "Bai kiem tra dau vao T1–T15";
         } else {
-          testPanelTitle.textContent = "Bài kiểm tra đầu ra T1–T15";
+          testPanelTitle.textContent = "Bai kiem tra dau ra T1–T15";
         }
 
-        testSummary.textContent = "Trả lời từng câu, chọn đáp án A–D và trình bày ngắn gọn cách làm.";
+        testSummary.textContent = "Tra loi tung cau, chon dap an A–D va trinh bay ngan gon cach lam.";
 
         testSession = {
           mode: testMode,
           questions: testQuestions,
           currentIndex: 0,
-          answers: testQuestions.map(() => ({ choice: null, explanation: "" })),
+          answers: testQuestions.map(() => ({ choice: null, explanation: "", isCorrect: null })),
           graded: false,
           perStandard: {},
           correctCount: 0,
-          total: testQuestions.length
+          total: testQuestions.length,
+          explanationStats: null
         };
 
         renderCurrentTestQuestion();
       } catch (err) {
         console.error(err);
-        testSummary.textContent = "Lỗi tải câu hỏi: " + err.message;
+        testSummary.textContent = "Loi tai cau hoi: " + err.message;
       }
     }
 
@@ -1007,11 +1001,10 @@
       const idx = testSession.currentIndex;
       const q = testSession.questions[idx];
 
-      testProgress.textContent = `Câu ${idx + 1} / ${testSession.questions.length}`;
+      testProgress.textContent = `Cau ${idx + 1} / ${testSession.questions.length}`;
       testQuestionEl.textContent = q.text;
-      testStandardsEl.textContent = "Chuẩn liên quan: " + (q.standards || []).join(", ");
+      testStandardsEl.textContent = "Chuan lien quan: " + (q.standards || []).join(", ");
 
-      // render options
       testOptionsEl.innerHTML = "";
       const ans = testSession.answers[idx];
       (q.options || []).forEach((opt, i) => {
@@ -1030,21 +1023,17 @@
 
       testExplainEl.value = ans.explanation || "";
 
-      // feedback sau khi chấm
-      if (testSession.graded && ans.hasOwnProperty("isCorrect")) {
-        if (ans.isCorrect) {
-          testFeedbackEl.textContent = ans.styleLabel || "Kết quả: Đúng. Tiếp tục duy trì cách làm này 👌";
-        } else {
-          testFeedbackEl.textContent =
-            (ans.styleLabel || "") +
-            (ans.styleLabel ? " " : "") +
-            `Đáp án đúng là ${String.fromCharCode(65 + (q.correct_index ?? 0))}.`;
-        }
+      if (testSession.graded && ans.isCorrect !== null) {
+        const correctness = ans.isCorrect
+          ? "Ket qua: Dung."
+          : "Ket qua: Sai. Dap an dung la " +
+            String.fromCharCode(65 + (q.correct_index ?? 0)) + ".";
+        const explanationEval = evaluateExplanationText(ans.explanation || "", ans.isCorrect);
+        testFeedbackEl.textContent = correctness + " " + explanationEval;
       } else {
         testFeedbackEl.textContent = "";
       }
 
-      // disable prev/next ở biên
       btnPrevQuestion.disabled = idx === 0;
       btnNextQuestion.disabled = idx === testSession.questions.length - 1;
     }
@@ -1077,138 +1066,163 @@
       }
     }
 
+    function evaluateExplanationText(text, isCorrect) {
+      const len = (text || "").length;
+      if (!text || !text.trim()) {
+        return "Em gan nhu khong trinh bay loi giai; nen tap viet lai cac buoc chinh de de kiem tra loi va duoc cham diem cao hon.";
+      }
+      if (len < 25) {
+        if (isCorrect) {
+          return "Em chon dung nhung trinh bay con rat ngan, nen ghi ro it nhat 1–2 buoc tinh chinh de hinh thanh thoi quen giai bai day du.";
+        } else {
+          return "Em co ghi chu nhung con rat ngan; nen viet ro tung buoc tinh de de nhan ra cho sai va nho nguoi khac gop y.";
+        }
+      }
+      if (len < 80) {
+        if (isCorrect) {
+          return "Cach trinh bay tam on, nhung co the them 1 buoc giai thich ly do chon cong thuc hoac cach dat an.";
+        } else {
+          return "Em trinh bay o muc vua phai; hay xem lai tung buoc, dac biet phep tinh va cach suy ra cong thuc de tim chinh xac hon.";
+        }
+      }
+      if (isCorrect) {
+        return "Cach trinh bay kha chi tiet, day du buoc. Neu co the, em co the rut gon mot so dong nhung van giu duoc y chinh.";
+      }
+      return "Em trinh bay kha chi tiet, nhung co the dang sai o mot vai buoc logic hoac phep tinh. Nen kiem tra lai dieu kien, buoc chuyen ve va cac so lieu.";
+    }
+
     function describeStandardLevel(total, correct) {
-      if (!total) return "Chưa có câu hỏi thuộc nhóm này trong bài kiểm tra.";
+      if (!total) return "Chua co cau hoi thuoc nhom nay trong bai kiem tra.";
       const ratio = correct / total;
       if (ratio >= 0.8) {
-        return "Mạnh – em làm tốt hầu hết câu hỏi thuộc nhóm chuẩn này.";
+        return "Manh – em lam tot phan lon cau hoi thuoc nhom chuan nay.";
       } else if (ratio >= 0.5) {
-        return "Trung bình – em đã nắm được một phần, nên luyện thêm để vững hơn.";
+        return "Trung binh – em nam duoc mot phan, nen luyen them de vung hon.";
       }
-      return "Cần củng cố – nên ôn lại lý thuyết và làm thêm bài tập minh họa.";
+      return "Can cung co – nen on lai ly thuyet va lam them bai tap minh hoa.";
     }
 
-    function overallText(total, correct) {
+    function overallText(total, correct, explanationStats) {
       if (!total) {
-        return "Chưa có đủ dữ liệu để đánh giá.";
+        return "Chua co du du lieu de danh gia.";
       }
       const ratio = correct / total;
+      let base;
       if (ratio >= 0.8) {
-        return "Kết quả cho thấy em đang làm khá tốt bài kiểm tra này. Có thể bắt đầu luyện các dạng bài nâng cao và duy trì ôn tập các chủ đề đã vững.";
+        base = "Ket qua cho thay em dang lam kha tot bai kiem tra nay. Co the bat dau luyen cac dang bai nang cao va duy tri on tap cac chu de da vung.";
       } else if (ratio >= 0.5) {
-        return "Kết quả ở mức trung bình. Em đã nắm được một phần kiến thức nhưng vẫn cần luyện thêm một số dạng bài để chắc hơn.";
+        base = "Ket qua o muc trung binh. Em da nam duoc mot phan kien thuc nhung van can luyen them mot so dang bai de chac hon.";
+      } else {
+        base = "Ket qua cho thay em can tap trung cung co lai cac kien thuc co ban, nen xem lai ly thuyet va lam them bai tap mau cho tung chuan.";
       }
-      return "Kết quả cho thấy em cần tập trung củng cố lại các kiến thức cơ bản, nên xem lại lý thuyết và làm thêm bài tập mẫu cho từng chuẩn.";
+
+      if (explanationStats) {
+        const { blankAnswers, noExplanation, shortExplanation } = explanationStats;
+        const extraParts = [];
+        if (blankAnswers > 0) {
+          extraParts.push(`Co ${blankAnswers} cau em de trong hoan toan (khong chon dap an va khong trinh bay). Nen thu lam ca khi chua chac chan de phat hien diem yeu.`);
+        }
+        if (noExplanation > 0) {
+          extraParts.push(`Co ${noExplanation} cau em chi chon dap an ma khong viet loi giai. De ren thoi quen lam bai thi, em nen tap trinh bay it nhat 1–2 buoc chinh.`);
+        }
+        if (shortExplanation > 0) {
+          extraParts.push(`Mot so cau em trinh bay rat ngan (${shortExplanation} cau). Hay co gang viet ro them mot buoc tinh hoac giai thich ly do chon cong thuc.`);
+        }
+        if (extraParts.length) {
+          base += " " + extraParts.join(" ");
+        }
+      }
+      return base;
     }
 
-    function classifyStyleLabel(isCorrect, choice, explanation) {
-      const len = (explanation || "").length;
-      if (choice === null) {
-        return "Không trả lời – có thể chưa biết cách làm hoặc thiếu thời gian.";
-      }
-      if (!isCorrect && len <= 10) {
-        return "Sai & trình bày rất ngắn – dễ là khoanh ẩu, nên tập viết rõ các bước.";
-      }
-      if (!isCorrect && len > 10) {
-        return "Sai nhưng đã trình bày – cần xem lại phương pháp hoặc từng bước giải.";
-      }
-      if (isCorrect && len <= 10) {
-        return "Đúng nhưng trình bày ngắn – nên ghi rõ từng bước để kiểm soát lỗi sai.";
-      }
-      if (isCorrect && len > 10) {
-        return "Đúng & trình bày rõ ràng – tiếp tục duy trì cách trình bày này.";
-      }
-      return "";
-    }
-
-    function buildScheduleFromResults(perStandard) {
-      const codes = Object.keys(perStandard);
-      if (!codes.length) {
-        return [
-          "Chưa có dữ liệu đủ rõ để lập lịch chi tiết.",
-          "Em có thể tiếp tục luyện các bài toán cơ bản của Toán 9 và sử dụng Trợ lý Toán AI khi gặp khó khăn."
-        ];
-      }
-
-      const items = codes.map(code => {
-        const info = perStandard[code];
-        const ratio = info.total ? info.correct / info.total : 0;
+    function buildScheduleFromResults(perStandard, explanationStats) {
+      const codes = Object.keys(STANDARD_LABELS);
+      const ordered = codes.map(code => {
+        const info = perStandard[code] || { total: 0, correct: 0 };
+        const ratio = info.total ? info.correct / info.total : 0.6; // khong co du lieu: xem nhu trung binh
         return { code, ratio, total: info.total };
       }).sort((a, b) => a.ratio - b.ratio);
 
-      const focus = items.slice(0, 4); // tối đa 4 chuẩn cần tập trung
-      const lines = [];
-      let day = 1;
-      focus.forEach(item => {
-        const label = STANDARD_LABELS[item.code] || ("Chuẩn " + item.code);
-        lines.push(
-          `Ngày ${day}: Ôn lại ${item.code} – ${label}. Làm thêm 3–5 bài tập mẫu và nhờ Trợ lý Toán AI giải chi tiết các câu em làm sai.`
-        );
-        day++;
-      });
+      const weak = ordered.slice(0, 5).map(x => x.code);
+      const mid = ordered.slice(5, 10).map(x => x.code);
+      const strong = ordered.slice(10).map(x => x.code);
 
-      lines.push(
-        "Ngày tiếp theo: Lặp lại chu trình với các chuẩn em cảm thấy còn yếu, xen kẽ các bài toán thực tế (T15) để vận dụng."
-      );
-      return lines;
-    }
-
-    function buildQuarterPlan(perStandard) {
-      const codes = Object.keys(perStandard || {});
-      const allCodes = Object.keys(STANDARD_LABELS);
-      const baseCodes = codes.length ? codes : allCodes;
-
-      const stats = {};
-      baseCodes.forEach(c => {
-        const info = perStandard[c] || { total: 0, correct: 0 };
-        const ratio = info.total ? info.correct / info.total : 0;
-        stats[c] = { ratio, total: info.total };
-      });
-
-      const sorted = baseCodes.slice().sort((a, b) => {
-        return (stats[a].ratio || 0) - (stats[b].ratio || 0);
-      });
-
-      const weak = sorted.slice(0, Math.max(1, Math.floor(sorted.length / 3)));
-      const medium = sorted.slice(weak.length, weak.length + Math.max(1, Math.floor(sorted.length / 3)));
-      const strong = sorted.slice(weak.length + medium.length);
-
-      function pickOrderForMonth(monthIndex) {
-        if (monthIndex === 0) {
-          return (weak.length ? weak : sorted).concat(medium);
-        } else if (monthIndex === 1) {
-          return weak.concat(medium.length ? medium : sorted).concat(strong);
-        }
-        return medium.concat(strong.length ? strong : sorted);
+      function pickOrFallback(list, idx, fallback) {
+        if (idx < list.length) return list[idx];
+        if (fallback < ordered.length) return ordered[fallback].code;
+        return "T1";
       }
 
-      function makeMonthPlan(monthIndex) {
-        const order = pickOrderForMonth(monthIndex);
-        if (!order.length) return [];
-
-        const weeks = 4;
-        const days = 7;
-        const matrix = [];
-        let cellIndex = 0;
-        for (let w = 0; w < weeks; w++) {
-          const row = [];
-          for (let d = 0; d < days; d++) {
-            const code = order[cellIndex % order.length];
-            const action = ACTIONS[cellIndex % ACTIONS.length];
-            const label = (STANDARD_LABELS[code] || ("Chuẩn " + code));
-            row.push(`${code} – ${label}: ${action}`);
-            cellIndex++;
-          }
-          matrix.push(row);
-        }
-        return matrix;
-      }
-
-      return {
-        month1: makeMonthPlan(0),
-        month2: makeMonthPlan(1),
-        month3: makeMonthPlan(2)
+      const month1 = {
+        title: "Thang 1 – Tap trung vao cac chuan yeu nhat",
+        rows: []
       };
+      const month2 = {
+        title: "Thang 2 – On lai chuan yeu + trung binh",
+        rows: []
+      };
+      const month3 = {
+        title: "Thang 3 – Cung co chuan trung binh + manh",
+        rows: []
+      };
+
+      function cellText(code, levelLabel) {
+        const label = STANDARD_LABELS[code] || ("Chuan " + code);
+        const info = STANDARD_RESOURCES[code] || [];
+        const res1 = info[0] || "SGK Toan 9";
+        const res2 = info[1] || "Tim video luyen tap phu hop tren YouTube";
+        return `${code} – ${label}: ${levelLabel}. Bai tap: lam 3–5 bai tap co ban hoac van dung; co the them 1 bai toan thuc te neu co. Tai lieu: ${res1}; ${res2}.`;
+      }
+
+      // Tháng 1: chủ yếu weak
+      for (let r = 0; r < 4; r++) {
+        const row = [];
+        row.push(cellText(pickOrFallback(weak, 0, 0), "On lai ly thuyet & cong thuc chinh")); // T2
+        row.push(cellText(pickOrFallback(weak, 1, 1), "Lam 3–5 bai tap co ban"));            // T3
+        row.push(cellText(pickOrFallback(weak, 2, 2), "Lam 3–5 bai tap van dung"));          // T4
+        row.push(cellText(pickOrFallback(weak, 3, 3), "Lam 1 bai toan thuc te hoac tong hop")); // T5
+        row.push(cellText(pickOrFallback(weak, 4, 4), "On lai ly thuyet & lam 3 bai tap mau")); // T6
+        row.push(cellText(pickOrFallback(mid, 0, 5), "Lam 3–5 bai tap co ban"));              // T7
+        row.push("Nghi hoac tong ket tuan: xem lai cac cau lam sai, ghi chu cac loi thuong gap va hoi Tro ly Toan AI giai chi tiet.");
+        month1.rows.push(row);
+      }
+
+      // Tháng 2: weak + mid + them T15
+      for (let r = 0; r < 4; r++) {
+        const row = [];
+        row.push(cellText(pickOrFallback(weak, r % weak.length, 0), "On lai ly thuyet & cong thuc chinh")); // T2
+        row.push(cellText(pickOrFallback(mid, 0, 5), "Lam 3–5 bai tap co ban"));                           // T3
+        row.push(cellText(pickOrFallback(mid, 1, 6), "Lam 3–5 bai tap van dung"));                         // T4
+        row.push(cellText(pickOrFallback(mid, 2, 7), "Lam 1 bai tong hop hoac luyen de thi"));             // T5
+        row.push(cellText(pickOrFallback(mid, 3, 8), "On lai ly thuyet & lam 3 bai tap mau"));             // T6
+        row.push(cellText(pickOrFallback(["T15"], 0, 0), "Lam 2–3 bai toan thuc te gan voi cuoc song"));   // T7
+        row.push("Tong ket tuan: danh dau cac chuan da tien bo va chuan van yeu; dieu chinh ke hoach neu can.");
+        month2.rows.push(row);
+      }
+
+      // Tháng 3: mid + strong
+      const combined = mid.concat(strong);
+      for (let r = 0; r < 4; r++) {
+        const row = [];
+        row.push(cellText(pickOrFallback(combined, 0, 0), "On lai ly thuyet & cong thuc chinh")); // T2
+        row.push(cellText(pickOrFallback(combined, 1, 1), "Lam 3–5 bai tap co ban"));             // T3
+        row.push(cellText(pickOrFallback(combined, 2, 2), "Lam 3–5 bai tap van dung & nang cao"));// T4
+        row.push(cellText(pickOrFallback(combined, 3, 3), "Lam 1 de on tap tong hop nho nhap vai de thi")); // T5
+        row.push(cellText(pickOrFallback(combined, 4, 4), "On lai ly thuyet bang so do tu duy hoac flashcard")); // T6
+        row.push(cellText(pickOrFallback(combined, 5, 5), "Lam 3–5 bai tap tong hop co ket hop nhieu chuan"));    // T7
+        row.push("Cuoi tuan: lam lai 1 bai kiem tra tu tao (10 cau), sau do nhap vao he thong de Tro ly Toan AI phan tich loi sai.");
+        month3.rows.push(row);
+      }
+
+      // Chu ky ngan (ngay 1–4) – dung cho muc "Lich hoc tong quan"
+      const cycle = [
+        "Ngay 1: Chon 1–2 chuan yeu nhat, on lai ly thuyet & cong thuc. Lam 3–5 bai tap co ban.",
+        "Ngay 2: Lam 3–5 bai tap van dung cho cac chuan do; neu du thoi gian lam 1 bai toan thuc te nho.",
+        "Ngay 3: On lai cac cau lam sai, ghi chu ly do sai. Nho Tro ly Toan AI giai ki cac cau kho.",
+        "Ngay 4: Lam 1 bai kiem tra nho (5–8 cau), tu cham & so sanh voi huong dan, dieu chinh ke hoach on tap."
+      ];
+
+      return { month1, month2, month3, cycle };
     }
 
     function gradeCurrentTest() {
@@ -1219,12 +1233,28 @@
       let correct = 0;
       const perStandard = {};
       const results = [];
-      const styleStats = { blank: 0, shortOrLazy: 0, logicWrong: 0, good: 0 };
+
+      const explanationStats = {
+        blankAnswers: 0,
+        noExplanation: 0,
+        shortExplanation: 0,
+        detailedExplanation: 0
+      };
 
       questions.forEach((q, idx) => {
         const ans = answers[idx];
         const isCorrect = ans.choice === q.correct_index;
         ans.isCorrect = isCorrect;
+
+        if (ans.choice === null && (!ans.explanation || !ans.explanation.trim())) {
+          explanationStats.blankAnswers++;
+        } else if (!ans.explanation || !ans.explanation.trim()) {
+          explanationStats.noExplanation++;
+        } else if (ans.explanation.trim().length < 40) {
+          explanationStats.shortExplanation++;
+        } else {
+          explanationStats.detailedExplanation++;
+        }
 
         if (isCorrect) correct++;
 
@@ -1234,43 +1264,28 @@
           if (isCorrect) perStandard[code].correct += 1;
         });
 
-        const styleLabel = classifyStyleLabel(isCorrect, ans.choice, ans.explanation);
-        ans.styleLabel = styleLabel;
-
-        if (ans.choice === null) {
-          styleStats.blank++;
-        } else if (!isCorrect && (ans.explanation || "").length <= 10) {
-          styleStats.shortOrLazy++;
-        } else if (!isCorrect && (ans.explanation || "").length > 10) {
-          styleStats.logicWrong++;
-        } else if (isCorrect && (ans.explanation || "").length <= 10) {
-          styleStats.shortOrLazy++;
-        } else if (isCorrect && (ans.explanation || "").length > 10) {
-          styleStats.good++;
-        }
-
         results.push({
           index: idx + 1,
           question: q.text,
           choice: ans.choice,
           explanation: ans.explanation,
           standards: q.standards || [],
-          isCorrect,
-          styleLabel
+          isCorrect
         });
       });
 
       testSession.graded = true;
       testSession.perStandard = perStandard;
       testSession.correctCount = correct;
+      testSession.explanationStats = explanationStats;
 
       const modeLabel =
-        testSession.mode === "input" ? "đầu vào"
-          : testSession.mode === "output" ? "đầu ra"
-          : "quiz luyện tập";
+        testSession.mode === "input" ? "dau vao"
+          : testSession.mode === "output" ? "dau ra"
+          : "quiz luyen tap";
 
       testSummary.textContent =
-        `Đã chấm xong bài ${modeLabel}. Hãy xem lại từng câu, sau đó xuất PDF để lấy báo cáo và lịch học gợi ý.`;
+        `Da cham xong bai ${modeLabel}. Hay xem lai tung cau, sau do xuat PDF de lay bao cao & ke hoach chi tiet.`;
 
       lastTestResults = {
         mode: testSession.mode,
@@ -1278,22 +1293,20 @@
         correct,
         perStandard,
         results,
-        styleStats
+        explanationStats
       };
 
       exportPdfBtn.disabled = questions.length === 0;
       exportPdfGlobalBtn.disabled = questions.length === 0;
 
-      renderCurrentTestQuestion(); // cập nhật feedback cho câu hiện tại
+      renderCurrentTestQuestion();
 
-      // Đẩy 1 tóm tắt vào cuộc trò chuyện hiện tại để “kết nối”
       const conv = getCurrentConversation();
-      const summaryLine = `Tóm tắt ${modeLabel}: em làm đúng khoảng ${correct}/${questions.length} câu. Một số chuẩn cần chú ý thêm: ${
-        Object.keys(perStandard).filter(c => {
-          const info = perStandard[c];
-          return info.total && info.correct / info.total < 0.8;
-        }).join(", ") || "chưa rõ"
-      }.`;
+      const weakStandards = Object.keys(perStandard).filter(c => {
+        const info = perStandard[c];
+        return info.total && info.correct / info.total < 0.8;
+      });
+      const summaryLine = `Tom tat bai ${modeLabel}: em lam dung ${correct}/${questions.length} cau. Cac chuan can chu y them: ${weakStandards.join(", ") || "chua ro"}.\nHe thong cung da tao ke hoach on tap 1 quy trong bao cao PDF.`;
       conv.messages.push({
         role: "assistant",
         content: summaryLine
@@ -1301,117 +1314,69 @@
       renderMessages();
     }
 
-    function drawMonthTable(doc, startY, title, monthMatrix) {
-      const marginLeft = 40;
-      const colWidth = 70;
-      const rowHeight = 36;
-      const maxY = 800;
-
-      if (!monthMatrix || !monthMatrix.length) return startY;
-
-      let y = startY;
-
-      if (y > maxY - 120) {
-        doc.addPage();
-        y = 40;
-      }
-
-      doc.setFontSize(11);
-      doc.text(stripVietnamese(title), marginLeft, y);
-      y += 10;
-
-      const weekdays = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-      doc.setFontSize(9);
-
-      // header hàng thứ trong tuần
-      weekdays.forEach((w, idx) => {
-        const x = marginLeft + idx * colWidth + 4;
-        doc.text(stripVietnamese(w), x, y + 10);
-      });
-
-      y += 14;
-
-      monthMatrix.forEach(row => {
-        if (y > maxY - rowHeight) {
-          doc.addPage();
-          y = 40;
-        }
-        row.forEach((cell, idx) => {
-          const x = marginLeft + idx * colWidth;
-          // khung ô
-          doc.rect(x, y, colWidth, rowHeight);
-          const textLines = doc.splitTextToSize(stripVietnamese(cell), colWidth - 6);
-          doc.text(textLines, x + 3, y + 10);
-        });
-        y += rowHeight;
-      });
-
-      return y + 10;
-    }
-
     function exportPdfReport() {
       if (!lastTestResults) return;
       if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("Không tải được thư viện xuất PDF (jsPDF).");
+        alert("Khong tai duoc thu vien xuat PDF (jsPDF).");
         return;
       }
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: "pt", format: "a4" });
 
-      // Font ổn định, chấp nhận bỏ dấu khi ghi vào PDF để tránh ký tự rác
+      // Luu y: core font cua jsPDF khong ho tro dau tieng Viet day du,
+      // nen file PDF se bi bo dau (khong phai loi code, ma la gioi han thu vien).
+      // De dung font Unicode, can nhung TTF rieng va sua file fontconverter.
       doc.setFont("helvetica", "normal");
 
       const s = lastTestResults;
       let y = 40;
       const maxWidth = 500;
       const modeLabel =
-        s.mode === "input" ? "đầu vào"
-          : s.mode === "output" ? "đầu ra"
-          : "quiz luyện tập";
+        s.mode === "input" ? "dau vao"
+          : s.mode === "output" ? "dau ra"
+          : "quiz luyen tap";
 
-      // 0. Tiêu đề
       doc.setFontSize(14);
       doc.text(
-        stripVietnamese(`Bao cao & ke hoach hoc – Bai ${modeLabel} T1–T15 – K9 Math AI Assistant`),
+        `Bao cao & ke hoach hoc – Bai ${modeLabel} T1–T15 – K9 Math AI Assistant`,
         40,
         y
       );
 
       y += 20;
       doc.setFontSize(11);
-      doc.text(stripVietnamese("Thoi gian: " + new Date().toLocaleString()), 40, y);
+      doc.text("Thoi gian: " + new Date().toLocaleString(), 40, y);
 
-      // 1. Đánh giá tổng quan
+      // 1. Danh gia tong quan
       y += 24;
       doc.setFontSize(11);
-      doc.text(stripVietnamese("1. Danh gia tong quan"), 40, y);
+      doc.text("1. Danh gia tong quan", 40, y);
       y += 14;
       doc.setFontSize(10);
-
       const overallLines = doc.splitTextToSize(
-        stripVietnamese(overallText(s.totalQuestions, s.correct)),
+        overallText(s.totalQuestions, s.correct, s.explanationStats),
         maxWidth
       );
       doc.text(overallLines, 40, y);
       y += overallLines.length * 12;
 
-      // 2. Đánh giá theo từng chuẩn
+      // 2. Danh gia theo tung nhom chuan
       y += 16;
       doc.setFontSize(11);
-      doc.text(stripVietnamese("2. Danh gia theo tung nhom chuan"), 40, y);
+      doc.text("2. Danh gia theo tung nhom chuan", 40, y);
       y += 14;
       doc.setFontSize(10);
 
       const codes = Object.keys(s.perStandard || {}).sort();
       if (!codes.length) {
-        doc.text(stripVietnamese("Chua co du lieu du ro de phan tich theo chuan."), 40, y);
+        doc.text("Chua co du du lieu de phan tich theo chuan.", 40, y);
         y += 14;
       } else {
         codes.forEach(code => {
           const info = s.perStandard[code];
           const line = `${code} – ${(STANDARD_LABELS[code] || "Chuan " + code)}: ${describeStandardLevel(info.total, info.correct)}`;
-          const wrapped = doc.splitTextToSize(stripVietnamese(line), maxWidth);
+          const wrapped = doc.splitTextToSize(line, maxWidth);
           if (y + wrapped.length * 12 > 770) {
             doc.addPage();
             y = 40;
@@ -1421,42 +1386,39 @@
         });
       }
 
-      // 3. Nhận xét về trình bày & thói quen làm bài
+      // 3. Nhan xet ve cach trinh bay & thoi quen lam bai
       y += 16;
       doc.setFontSize(11);
-      doc.text(stripVietnamese("3. Nhan xet ve cach trinh bay & thoi quen lam bai"), 40, y);
+      doc.text("3. Nhan xet ve cach trinh bay & thoi quen lam bai", 40, y);
       y += 14;
       doc.setFontSize(10);
 
-      const st = s.styleStats || { blank: 0, shortOrLazy: 0, logicWrong: 0, good: 0 };
-      const styleLines = [];
+      const es = s.explanationStats || {};
+      const expLines = [];
+      expLines.push(`So cau bo trong hoan toan: ${es.blankAnswers || 0}.`);
+      expLines.push(`So cau chi chon dap an, khong viet loi giai: ${es.noExplanation || 0}.`);
+      expLines.push(`So cau trinh bay rat ngan: ${es.shortExplanation || 0}.`);
+      expLines.push(`So cau trinh bay chi tiet hon: ${es.detailedExplanation || 0}.`);
+      const expWrapped = doc.splitTextToSize(
+        expLines.join(" "),
+        maxWidth
+      );
+      if (y + expWrapped.length * 12 > 770) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.text(expWrapped, 40, y);
+      y += expWrapped.length * 12;
 
-      if (st.blank > 0) {
-        styleLines.push(
-          `- Co ${st.blank} cau em de trong, can chu dong thu lam, ke ca khi chua chac chan, de phat hien diem yeu.`
-        );
-      }
-      if (st.shortOrLazy > 0) {
-        styleLines.push(
-          `- Co ${st.shortOrLazy} cau em trinh bay rat ngan hoac co ve khoanh au. Nen ghi ro it nhat 2–3 buoc chinh cho moi cau.`
-        );
-      }
-      if (st.logicWrong > 0) {
-        styleLines.push(
-          `- Co ${st.logicWrong} cau em da trinh bay nhung sai buoc/pp. Nen doi sang cach lap pt, ve hinh hoac tach buoc ro rang hon.`
-        );
-      }
-      if (st.good > 0) {
-        styleLines.push(
-          `- Co ${st.good} cau em vua lam dung vua trinh bay ro. Nen duyen tri cach ghi chep nay khi lam bai kiem tra.`
-        );
-      }
-      if (!styleLines.length) {
-        styleLines.push("Chua co du lieu ro ve cach trinh bay, can lam va giai thich them trong cac bai kiem tra sau.");
-      }
-
-      styleLines.forEach(line => {
-        const wrapped = doc.splitTextToSize(stripVietnamese(line), maxWidth);
+      // 4. Lich hoc tong quan theo chu ky ngan
+      const scheduleAll = buildScheduleFromResults(s.perStandard || {}, s.explanationStats || {});
+      y += 16;
+      doc.setFontSize(11);
+      doc.text("4. Lich hoc tong quan (chu ky 4 ngay)", 40, y);
+      y += 14;
+      doc.setFontSize(10);
+      scheduleAll.cycle.forEach(line => {
+        const wrapped = doc.splitTextToSize(line, maxWidth);
         if (y + wrapped.length * 12 > 770) {
           doc.addPage();
           y = 40;
@@ -1465,36 +1427,51 @@
         y += wrapped.length * 12;
       });
 
-      // 4. Lịch học dự kiến (tổng quan ngày 1,2,5,...)
-      y += 16;
-      doc.setFontSize(11);
-      doc.text(stripVietnamese("4. Lich hoc tong quan theo chu ky"), 40, y);
-      y += 14;
-      doc.setFontSize(10);
-      const scheduleLines = buildScheduleFromResults(s.perStandard || {});
-      scheduleLines.forEach(line => {
-        const wrapped = doc.splitTextToSize(stripVietnamese(line), maxWidth);
-        if (y + wrapped.length * 12 > 770) {
+      // 5. Ke hoach chi tiet 1 quy (3 thang, dang bang)
+      function drawMonthTable(monthData, monthIndex) {
+        if (!monthData) return;
+        if (y > 700) {
           doc.addPage();
           y = 40;
         }
-        doc.text(wrapped, 40, y);
-        y += wrapped.length * 12;
-      });
+        doc.setFontSize(11);
+        doc.text(`5.${monthIndex} ${monthData.title}`, 40, y);
+        y += 14;
+        doc.setFontSize(10);
+        const headers = "T2 | T3 | T4 | T5 | T6 | T7 | CN";
+        doc.text(headers, 40, y);
+        y += 12;
 
-      // 5. Kế hoạch chi tiết cho 1 quý (3 tháng, 3 bảng 7 cột)
+        monthData.rows.forEach((row, rIdx) => {
+          if (y > 760) {
+            doc.addPage();
+            y = 40;
+          }
+          doc.text(`Tuan ${rIdx + 1}:`, 40, y);
+          y += 12;
+          for (let c = 0; c < row.length; c++) {
+            const colLabel = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"][c] || "";
+            const text = `${colLabel}: ${row[c]}`;
+            const wrapped = doc.splitTextToSize(text, maxWidth);
+            if (y + wrapped.length * 12 > 770) {
+              doc.addPage();
+              y = 40;
+            }
+            doc.text(wrapped, 60, y);
+            y += wrapped.length * 12;
+          }
+          y += 6;
+        });
+      }
+
       y += 16;
-      doc.setFontSize(11);
-      doc.text(stripVietnamese("5. Ke hoach chi tiet 1 quy (3 thang, 4 tuan x 7 ngay)"), 40, y);
-      y += 14;
-      doc.setFontSize(10);
+      drawMonthTable(scheduleAll.month1, 1);
+      y += 10;
+      drawMonthTable(scheduleAll.month2, 2);
+      y += 10;
+      drawMonthTable(scheduleAll.month3, 3);
 
-      const quarterPlan = buildQuarterPlan(s.perStandard || {});
-      y = drawMonthTable(doc, y, "Thang 1 – Tap trung vao cac chuan yeu nhat", quarterPlan.month1);
-      y = drawMonthTable(doc, y, "Thang 2 – On lai chuan yeu + trung binh", quarterPlan.month2);
-      y = drawMonthTable(doc, y, "Thang 3 – Cung co chuan trung binh + manh", quarterPlan.month3);
-
-      doc.save(`Bao_cao_${stripVietnamese(modeLabel).replace(" ", "_")}_T1-T15.pdf`);
+      doc.save(`Bao_cao_${modeLabel.replace(" ", "_")}_T1-T15.pdf`);
     }
 
     // ===== EVT =====
