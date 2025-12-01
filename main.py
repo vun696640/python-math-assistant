@@ -9,6 +9,33 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pypdf import PdfReader
 from openai import OpenAI
+client = OpenAI()
+
+AI_MODELS = [
+    "gpt-4o-mini",   # ưu tiên
+    "gpt-4o",        # fallback 1
+    "o3-mini",       # fallback 2
+    "o1-mini",       # fallback 3
+]
+
+def ask_ai(messages):
+    last_error = None
+
+    for model in AI_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=1500,
+            )
+            return response.choices[0].message["content"]
+        except Exception as e:
+            print(f"❌ Model {model} failed, trying next…")
+            last_error = e
+            continue
+
+    # Nếu tất cả lỗi
+    return f"⚠ Hệ thống đang bị quá tải (rate limit). Thử lại sau.\n\nChi tiết: {last_error}"
 
 # ========================
 #  PATHS & CONFIG
