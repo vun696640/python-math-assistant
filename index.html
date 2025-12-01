@@ -609,6 +609,13 @@
                 <span class="icon">✔</span>
                 <span>Chấm bài &amp; gợi ý kế hoạch</span>
               </button>
+
+              <!-- NÚT LÀM LẠI ĐỀ MỚI -->
+              <button class="header-btn" id="btn-reset-test">
+                <span class="icon">🔄</span>
+                <span>Làm lại đề mới</span>
+              </button>
+
               <button class="header-btn" id="btn-export-pdf" disabled>
                 <span class="icon">📄</span>
                 <span>Xuất PDF bài kiểm tra</span>
@@ -702,11 +709,13 @@
     const btnPrevQuestion = document.getElementById("btn-prev-question");
     const btnNextQuestion = document.getElementById("btn-next-question");
     const btnGradeTest = document.getElementById("btn-grade-test");
+    const btnResetTest = document.getElementById("btn-reset-test");
     const exportPdfBtn = document.getElementById("btn-export-pdf");
 
     let testMode = "input"; // input | output | quiz
     let testQuestions = [];
-    let testSession = null; // {mode, questions, answers, currentIndex, graded, ...}
+    let testSession = null; // session hiện tại
+    let testSessionsByMode = {}; // { input: {...}, output: {...}, quiz: {...} }
     let lastTestResults = null; // dùng cho xuất PDF & nhật kí học
 
     // ===== CHAT =====
@@ -930,22 +939,30 @@
       }
     });
 
-    // ===== TEST / QUIZ (kiểu "trình riêng") =====
+    // ===== TEST / QUIZ =====
     function openTestPanel(mode) {
-      const targetMode = mode || "input";
+      const targetMode = mode || testMode || "input";
+      testMode = targetMode;
 
-      // nếu panel đã mở và cùng mode -> không reset đề
-      if (testPanel.style.display === "flex" && testSession && testMode === targetMode) {
+      // Nếu đã có session cho mode này -> chỉ mở lại, KHÔNG reset
+      if (testSessionsByMode[testMode]) {
+        testSession = testSessionsByMode[testMode];
+        testQuestions = testSession.questions || [];
+        testPanel.style.display = "flex";
+        testSummary.textContent = testSession.graded
+          ? "Đã chấm xong bài kiểm tra. Bạn có thể xem lại từng câu hoặc bấm 'Làm lại đề mới'."
+          : "Tiếp tục làm bài kiểm tra đang làm dở.";
+        exportPdfBtn.disabled = !testSession.graded;
+        renderCurrentTestQuestion();
         return;
       }
 
-      testMode = targetMode;
+      // Chưa có bài cho mode này -> lần đầu, sinh đề mới
       testPanel.style.display = "flex";
       testSummary.textContent = "Đang tải câu hỏi…";
       exportPdfBtn.disabled = true;   // PDF bài test khóa cho đến khi chấm xong
       testQuestions = [];
       testSession = null;
-      lastTestResults = lastTestResults || null; // giữ lại cho báo cáo tổng
       loadTestQuestions();
     }
 
@@ -1003,6 +1020,9 @@
           total: testQuestions.length,
           styleStats: {}
         };
+
+        // Lưu session theo mode để không tự reset
+        testSessionsByMode[testMode] = testSession;
 
         renderCurrentTestQuestion();
       } catch (err) {
@@ -1078,7 +1098,6 @@
       }
     }
 
-    // phân loại thói quen làm bài / trình bày
     function classifyAnswerStyle(ans, q) {
       const expl = (ans.explanation || "").trim();
       const explLen = expl.length;
@@ -1294,7 +1313,6 @@
       };
 
       exportPdfBtn.disabled = questions.length === 0;
-      // Nút nhật kí ngoài luôn bật
       exportPdfGlobalBtn.disabled = false;
 
       renderCurrentTestQuestion();
@@ -1314,6 +1332,42 @@
         content: summaryLine
       });
       renderMessages();
+    }
+
+    async function resetTestWithConfirm() {
+      if (!testMode) return;
+
+      const ok = confirm(
+        "Bạn có chắc muốn tạo lại đề mới cho bài kiểm tra này? Mọi câu trả lời hiện tại sẽ bị xóa."
+      );
+      if (!ok) return;
+
+      // quiz dùng chung backend với output
+      const backendMode = (testMode === "quiz") ? "output" : testMode;
+
+      try {
+        const res = await fetch(API_BASE + "/api/reset_quiz", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: backendMode })
+        });
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
+      } catch (err) {
+        console.error(err);
+        // vẫn tiếp tục reset frontend & load đề mới
+      }
+
+      // Xóa session frontend cho mode hiện tại
+      delete testSessionsByMode[testMode];
+      testSession = null;
+      testQuestions = [];
+      exportPdfBtn.disabled = true;
+      testSummary.textContent = "Đang tải câu hỏi mới…";
+
+      // Gọi lại để sinh đề mới (lúc này cache server đã reset)
+      loadTestQuestions();
     }
 
     // ===== PDF bằng pdfMake =====
@@ -1485,6 +1539,7 @@
     btnPrevQuestion.addEventListener("click", goToPrevQuestion);
     btnNextQuestion.addEventListener("click", goToNextQuestion);
     btnGradeTest.addEventListener("click", gradeCurrentTest);
+    btnResetTest.addEventListener("click", resetTestWithConfirm);
 
     exportPdfBtn.addEventListener("click", exportPdfReport);            // PDF bài test
     exportPdfGlobalBtn.addEventListener("click", exportDailySummaryPdf); // nhật kí học
@@ -1495,5 +1550,4 @@
   </script>
 </body>
 </html>
-
 
