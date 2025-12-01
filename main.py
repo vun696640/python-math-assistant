@@ -95,6 +95,16 @@ class QuizResponse(BaseModel):
 
 
 # ========================
+#  QUIZ CACHE (TRÁNH SINH ĐỀ MỚI NGOÀI Ý MUỐN)
+# ========================
+# Cache đề theo mode trên lifetime của process.
+# Lưu ý: cache này dùng chung cho tất cả người dùng – nhưng với bài test demo là ok.
+QUIZ_CACHE: Dict[str, List[QuizQuestion]] = {
+    "input": [],
+    "output": [],
+}
+
+# ========================
 #  CHUẨN ĐẦU RA T1–T15
 # ========================
 def default_standards() -> Dict[str, Standard]:
@@ -440,20 +450,48 @@ Trả về *DUY NHẤT* một JSON hợp lệ theo mẫu:
 
 @app.get("/api/input_quiz", response_model=QuizResponse)
 async def api_input_quiz():
+    """
+    Sinh đề kiểm tra đầu vào. Nếu đã có đề trong cache thì trả lại y nguyên,
+    chỉ khi reset (POST /api/reset_quiz) mới sinh đề mới.
+    """
     try:
-        questions = generate_quiz_with_ai("input", n=10)
-        return QuizResponse(questions=questions)
+        if not QUIZ_CACHE["input"]:
+            QUIZ_CACHE["input"] = generate_quiz_with_ai("input", n=10)
+        return QuizResponse(questions=QUIZ_CACHE["input"])
     except Exception as e:
         raise HTTPException(500, f"Lỗi sinh đề kiểm tra đầu vào bằng AI: {e}")
 
 
 @app.get("/api/output_quiz", response_model=QuizResponse)
 async def api_output_quiz():
+    """
+    Sinh đề kiểm tra đầu ra / củng cố. Cache theo mode 'output'.
+    """
     try:
-        questions = generate_quiz_with_ai("output", n=10)
-        return QuizResponse(questions=questions)
+        if not QUIZ_CACHE["output"]:
+            QUIZ_CACHE["output"] = generate_quiz_with_ai("output", n=10)
+        return QuizResponse(questions=QUIZ_CACHE["output"])
     except Exception as e:
         raise HTTPException(500, f"Lỗi sinh đề kiểm tra đầu ra bằng AI: {e}")
+
+
+class ResetQuizRequest(BaseModel):
+    mode: str = "all"  # 'input', 'output', 'all'
+
+
+@app.post("/api/reset_quiz")
+async def api_reset_quiz(req: ResetQuizRequest):
+    """
+    Reset đề quiz trên server. Được gọi khi người dùng bấm 'Làm lại đề mới'.
+    """
+    mode = (req.mode or "all").lower().strip()
+    if mode in ("input", "output"):
+        QUIZ_CACHE[mode] = []
+    else:
+        for k in QUIZ_CACHE.keys():
+            QUIZ_CACHE[k] = []
+
+    return {"status": "ok", "mode": mode}
 
 
 # ========================
