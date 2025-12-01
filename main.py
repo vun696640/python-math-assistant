@@ -10,32 +10,44 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 from openai import OpenAI
 client = OpenAI()
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 AI_MODELS = [
-    "gpt-4o-mini",   # ưu tiên
-    "gpt-4o",        # fallback 1
-    "o3-mini",       # fallback 2
-    "o1-mini",       # fallback 3
+    # Tạm thời bỏ gpt-4o-mini xuống cuối để nó đỡ ăn rate limit trước
+    "gpt-4o",        # ưu tiên 1
+    "o3-mini",       # ưu tiên 2
+    "o1-mini",       # ưu tiên 3
+    "gpt-4o-mini",   # để cuối cùng
 ]
 
 def ask_ai(messages):
+    """
+    Gọi OpenAI với danh sách fallback model.
+    Trả về string reply. Nếu tất cả model lỗi thì trả về message lỗi mềm.
+    """
     last_error = None
 
     for model in AI_MODELS:
         try:
+            print(f"👉 Đang gọi model: {model}")
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 max_tokens=1500,
             )
-            return response.choices[0].message["content"]
+            # SDK mới: dùng .content chứ không index kiểu dict
+            return response.choices[0].message.content.strip()
         except Exception as e:
-            print(f"❌ Model {model} failed, trying next…")
+            print(f"❌ Model {model} failed, trying next… ({e})")
             last_error = e
             continue
 
-    # Nếu tất cả lỗi
-    return f"⚠ Hệ thống đang bị quá tải (rate limit). Thử lại sau.\n\nChi tiết: {last_error}"
+    # Nếu tất cả đều lỗi
+    return (
+        "Hiện tại hệ thống AI đang bị quá tải (rate limit) nên mình chưa trả lời được.\n\n"
+        f"(Chi tiết kỹ thuật: {last_error})"
+    )
+
 
 # ========================
 #  PATHS & CONFIG
