@@ -5,3 +5,4 @@ openai>=1.0.0
 reportlab
 pypdf
 python-multipart
+google-generativeai
