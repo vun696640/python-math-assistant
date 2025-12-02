@@ -8,7 +8,20 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pypdf import PdfReader
-from openai import OpenAI
+
+# ========================
+#  GEMINI CONFIG
+# ========================
+import google.generativeai as genai
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    GEMINI_MODEL = genai.GenerativeModel("gemini-2.0-flash")
+else:
+    GEMINI_MODEL = None  # để còn báo lỗi mềm khi thiếu key
+
 
 # ========================
 #  PATHS & CONFIG
@@ -48,8 +61,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# OpenAI client (SDK mới)
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # ========================
 #  DATA MODELS
@@ -97,12 +108,11 @@ class QuizResponse(BaseModel):
 # ========================
 #  QUIZ CACHE (TRÁNH SINH ĐỀ MỚI NGOÀI Ý MUỐN)
 # ========================
-# Cache đề theo mode trên lifetime của process.
-# Lưu ý: cache này dùng chung cho tất cả người dùng – nhưng với bài test demo là ok.
 QUIZ_CACHE: Dict[str, List[QuizQuestion]] = {
     "input": [],
     "output": [],
 }
+
 
 # ========================
 #  CHUẨN ĐẦU RA T1–T15
@@ -206,6 +216,7 @@ def load_chuan_dau_ra_raw(path: str, standards: Dict[str, Standard]) -> str:
 STANDARDS: Dict[str, Standard] = parse_chuan_dau_ra_md(CHUAN_DAU_RA_FILE)
 CHUAN_DAU_RA_TEXT: str = load_chuan_dau_ra_raw(CHUAN_DAU_RA_FILE, STANDARDS)
 
+
 # ========================
 #  DETECT CHUẨN TỪ TEXT
 # ========================
@@ -262,7 +273,39 @@ def api_health():
         "status": "ok",
         "standards_loaded": list(STANDARDS.keys()),
         "has_chuan_dau_ra_file": os.path.exists(CHUAN_DAU_RA_FILE),
+        "gemini_ready": GEMINI_MODEL is not None,
     }
+
+
+# ========================
+#  HELPER GỌI GEMINI
+# ========================
+def call_gemini_chat(messages: List[Dict[str, str]]) -> str:
+    """
+    messages: list[{"role": "...", "content": "..."}]
+    Trả về chuỗi reply (hoặc raise Exception).
+    """
+    if GEMINI_MODEL is None:
+        raise RuntimeError("Thiếu GEMINI_API_KEY hoặc cấu hình Gemini chưa sẵn sàng.")
+
+    # Chuyển messages thành 1 prompt duy nhất cho Gemini
+    # Giữ phân biệt system / user / assistant để Gemini hiểu ngữ cảnh.
+    role_map = {
+        "system": "HƯỚNG DẪN",
+        "user": "HỌC SINH",
+        "assistant": "TRỢ LÝ",
+    }
+    prompt_parts = []
+    for m in messages:
+        r = m.get("role", "user")
+        c = m.get("content", "")
+        prefix = role_map.get(r, r.upper())
+        prompt_parts.append(f"{prefix}:\n{c}\n")
+    prompt = "\n\n".join(prompt_parts)
+
+    response = GEMINI_MODEL.generate_content(prompt)
+    text = getattr(response, "text", "") or ""
+    return text.strip()
 
 
 # ========================
@@ -298,17 +341,14 @@ async def chat_message(req: ChatRequest):
             break
 
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-        )
-        reply = completion.choices[0].message.content.strip()
+        reply = call_gemini_chat(messages)
+        if not reply:
+            raise RuntimeError("Gemini không trả về nội dung.")
     except Exception as e:
-        # Không ném 500 ra ngoài, trả luôn text lỗi
         reply = (
-            "Hiện tại server gặp lỗi khi gọi mô hình AI nên mình tạm thời "
+            "Hiện tại server gặp lỗi khi gọi mô hình AI (Gemini) nên mình tạm thời "
             "không giải được bài toán này.\n\n"
-            "Người quản trị có thể kiểm tra lại cấu hình OPENAI_API_KEY, "
+            "Người quản trị có thể kiểm tra lại cấu hình GEMINI_API_KEY, "
             "model, hoặc kết nối mạng của server.\n"
             f"(Chi tiết kỹ thuật: {e})"
         )
@@ -327,17 +367,18 @@ async def api_classify(req: ClassifyRequest):
 
 
 # ========================
-#  QUIZ SINH BỞI AI
+#  QUIZ SINH BỞI AI (GEMINI)
 # ========================
 def generate_quiz_with_ai(mode: str, n: int = 10) -> List[QuizQuestion]:
     """
-    Gọi OpenAI để sinh n câu hỏi trắc nghiệm dựa trên CHUẨN ĐẦU RA.
+    Gọi Gemini để sinh n câu hỏi trắc nghiệm dựa trên CHUẨN ĐẦU RA.
     mode: 'input' (đầu vào), 'output' (đầu ra / củng cố).
     """
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise RuntimeError("Thiếu OPENAI_API_KEY, không sinh quiz AI được.")
+    if GEMINI_MODEL is None:
+        raise RuntimeError(
+            "Thiếu GEMINI_API_KEY hoặc chưa cấu hình Gemini, không sinh quiz AI được."
+        )
 
-    # Giới hạn độ dài chuẩn đầu ra cho gọn prompt
     chuan_text = CHUAN_DAU_RA_TEXT
     if len(chuan_text) > 12000:
         chuan_text = chuan_text[:12000]
@@ -387,23 +428,29 @@ Trả về *DUY NHẤT* một JSON hợp lệ theo mẫu:
 - "standards" chỉ bao gồm các mã trong: {list(STANDARDS.keys())}.
 """
 
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-    )
-    raw = completion.choices[0].message.content.strip()
+    # Gộp system + user thành 1 prompt lớn cho Gemini
+    full_prompt = f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}"
+
+    response = GEMINI_MODEL.generate_content(full_prompt)
+    raw = (getattr(response, "text", "") or "").strip()
 
     # Bóc JSON
     try:
         if "```" in raw:
-            raw = raw.split("```", 2)[1]
-            raw = raw.replace("json", "", 1).strip()
+            # cắt code block nếu Gemini bọc trong ```json ... ```
+            parts = raw.split("```")
+            # tìm đoạn có JSON
+            candidate = ""
+            for p in parts:
+                if "{" in p and "questions" in p:
+                    candidate = p
+                    break
+            raw = candidate.strip()
+            if raw.startswith("json"):
+                raw = raw[4:].strip()
         data = json.loads(raw)
     except Exception as e:
-        raise RuntimeError(f"Lỗi parse JSON quiz từ OpenAI: {e}")
+        raise RuntimeError(f"Lỗi parse JSON quiz từ Gemini: {e} – raw: {raw[:300]}...")
 
     questions_data = data.get("questions", [])
     questions: List[QuizQuestion] = []
@@ -441,7 +488,7 @@ Trả về *DUY NHẤT* một JSON hợp lệ theo mẫu:
             continue
 
     if not questions:
-        raise RuntimeError("Không sinh được câu hỏi hợp lệ nào từ OpenAI.")
+        raise RuntimeError("Không sinh được câu hỏi hợp lệ nào từ Gemini.")
     if len(questions) > n:
         questions = questions[:n]
 
